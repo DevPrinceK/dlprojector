@@ -14,9 +14,10 @@ export function ProjectionControls() {
 
   const openProjection = async () => {
     await tryInvokeCommand("open_projection_window", undefined, () => {
-      window.open(`${window.location.origin}/?window=projection`, "dlprojector-projection", "popup,width=1280,height=720");
+      window.open(`${window.location.origin}/#projection`, "dlprojector-projection", "popup,width=1280,height=720");
     });
-    pushToast({ kind: "success", title: "Projection window opened" });
+    const status = await tryInvokeCommand<string>("projection_window_status", undefined, () => "browser projection window opened");
+    pushToast({ kind: "success", title: "Projection window opened", description: status });
   };
 
   const fullscreen = async () => {
@@ -24,9 +25,22 @@ export function ProjectionControls() {
     pushToast({ kind: "info", title: "Fullscreen command sent" });
   };
 
+  const runProjectionAction = async (title: string, action: () => Promise<void>) => {
+    try {
+      await action();
+    } catch (error) {
+      pushToast({
+        kind: "error",
+        title,
+        description: error instanceof Error ? error.message : "Projection command failed."
+      });
+    }
+  };
+
   return (
-    <div className="sticky top-0 z-30 border-b border-white/70 bg-white/[0.76] px-4 py-3 backdrop-blur-xl lg:px-8">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="sticky top-0 z-30 border-b border-white/70 bg-white/[0.86] px-4 py-2.5 backdrop-blur-xl lg:px-6 xl:px-8">
+      <div className="grid gap-2">
+        <div className="flex flex-wrap items-center gap-2">
         <Button variant="default" size="sm" onClick={() => void openProjection()}>
           <MonitorUp className="h-4 w-4" />
           Open Projection
@@ -35,26 +49,27 @@ export function ProjectionControls() {
           <Maximize2 className="h-4 w-4" />
           Fullscreen
         </Button>
-        <Button variant="outline" size="sm" onClick={() => void showLogo()}>
+        <Button variant="outline" size="sm" onClick={() => void runProjectionAction("Could not show logo", showLogo)}>
           <Sparkles className="h-4 w-4" />
           Logo
         </Button>
-        <Button variant="outline" size="sm" onClick={() => void showBlank()}>
+        <Button variant="outline" size="sm" onClick={() => void runProjectionAction("Could not blank screen", showBlank)}>
           <ScreenShareOff className="h-4 w-4" />
           Blank
         </Button>
-        <Button variant="outline" size="sm" onClick={() => void restorePrevious()}>
+        <Button variant="outline" size="sm" onClick={() => void runProjectionAction("Could not restore previous slide", restorePrevious)}>
           <ChevronLeft className="h-4 w-4" />
           Previous
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => void showLoader()}>
+        <Button variant="secondary" size="sm" onClick={() => void runProjectionAction("Could not show loader", showLoader)}>
           Loader
         </Button>
-        <Button variant="danger" size="sm" onClick={() => void emergencyReset()}>
+        <Button variant="danger" size="sm" onClick={() => void runProjectionAction("Emergency reset failed", emergencyReset)}>
           <RotateCcw className="h-4 w-4" />
           Emergency Reset
         </Button>
-        <div className="ml-auto hidden text-xs text-muted-foreground md:block">
+        </div>
+        <div className="hidden text-right text-xs text-muted-foreground xl:block">
           Shortcuts: Space project, B blank, L logo, Ctrl+F search
         </div>
       </div>
