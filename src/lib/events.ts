@@ -1,5 +1,5 @@
 import { BLANK_CONTENT, LOADER_CONTENT, LOGO_CONTENT, type ProjectionContent } from "../types/projection";
-import { isTauriRuntime } from "./tauri";
+import { invokeCommand, isTauriRuntime } from "./tauri";
 
 export const PROJECTION_CONTENT_EVENT = "projection:content";
 export const PROJECTION_CLEAR_EVENT = "projection:clear";
@@ -13,8 +13,7 @@ function getBrowserChannel() {
 
 export async function emitProjectionContent(content: ProjectionContent) {
   if (isTauriRuntime()) {
-    const { emit } = await import("@tauri-apps/api/event");
-    await emit(PROJECTION_CONTENT_EVENT, content);
+    await invokeCommand("show_projection_content", { content });
     return;
   }
 
