@@ -28,7 +28,11 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   projectContent: async (content) => {
     const previousContent = get().currentContent;
     await emitProjectionContent(content);
-    await tryInvokeCommand("record_projection_history", { content }, () => localRepository.recordProjection(content));
+    try {
+      await tryInvokeCommand("record_projection_history", { content }, () => localRepository.recordProjection(content));
+    } catch (error) {
+      console.warn("Projection history could not be recorded.", error);
+    }
     set({
       currentContent: content,
       previousContent,
