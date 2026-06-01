@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
-import { searchScriptures } from "../../features/scriptures/scripture.api";
+import { listBibleVersions, searchScriptures } from "../../features/scriptures/scripture.api";
 import { scriptureResultToProjection } from "../../features/scriptures/scripture.utils";
 import { toErrorMessage } from "../../lib/error-handling";
 import { useAppStore } from "../../stores/app.store";
 import { useProjectionStore } from "../../stores/projection.store";
-import type { ScriptureSearchResult } from "../../types/scripture";
+import type { BibleVersion, ScriptureSearchResult } from "../../types/scripture";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -20,13 +20,15 @@ export function ScripturesPage() {
   const [query, setQuery] = useState("John 3:16");
   const [results, setResults] = useState<ScriptureSearchResult[]>([]);
   const [selected, setSelected] = useState<ScriptureSearchResult | null>(null);
+  const [versions, setVersions] = useState<BibleVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState("KJV");
   const [verseIndex, setVerseIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const runSearch = async (nextQuery = query) => {
     setIsLoading(true);
     try {
-      const nextResults = await searchScriptures(nextQuery);
+      const nextResults = await searchScriptures(nextQuery, selectedVersion);
       setResults(nextResults);
       const first = nextResults[0] ?? null;
       setSelected(first);
@@ -40,8 +42,17 @@ export function ScripturesPage() {
   };
 
   useEffect(() => {
+    void listBibleVersions().then((items) => {
+      setVersions(items);
+      const defaultVersion = items.find((item) => item.isDefault)?.abbreviation ?? items[0]?.abbreviation ?? "KJV";
+      setSelectedVersion(defaultVersion);
+    });
     void runSearch("John 3:16");
   }, []);
+
+  useEffect(() => {
+    if (query.trim()) void runSearch(query);
+  }, [selectedVersion]);
 
   const selectResult = (result: ScriptureSearchResult, index = 0) => {
     setSelected(result);
@@ -69,7 +80,7 @@ export function ScripturesPage() {
       />
 
       <form
-        className="mb-5 flex gap-3"
+        className="mb-5 grid gap-3 md:grid-cols-[1fr_auto_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           void runSearch();
@@ -81,6 +92,18 @@ export function ScripturesPage() {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search scripture..."
         />
+        <select
+          className="h-11 rounded-lg border border-input bg-white px-3 text-sm font-semibold text-navy-900"
+          value={selectedVersion}
+          onChange={(event) => setSelectedVersion(event.target.value)}
+          aria-label="Bible version"
+        >
+          {versions.map((version) => (
+            <option key={version.abbreviation} value={version.abbreviation}>
+              {version.abbreviation}
+            </option>
+          ))}
+        </select>
         <Button type="submit" disabled={isLoading}>
           <Search className="h-4 w-4" />
           Search
