@@ -27,3 +27,14 @@ pub fn focus_control_window(app: AppHandle) -> AppResult<()> {
         .set_focus()
         .map_err(|error| AppError::Tauri(error.to_string()))
 }
+
+#[tauri::command]
+pub fn projection_window_status(app: AppHandle) -> AppResult<String> {
+    let labels = app
+        .webview_windows()
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(format!("open windows: {labels}"))
+}
