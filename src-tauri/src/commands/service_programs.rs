@@ -138,6 +138,43 @@ pub fn add_service_item(state: State<'_, AppState>, input: ServiceItemInput) -> 
 }
 
 #[tauri::command]
+pub fn update_service_item(state: State<'_, AppState>, id: i64, input: ServiceItemInput) -> AppResult<ServiceItem> {
+    if input.title.trim().is_empty() {
+        return Err(AppError::Validation("Service item title is required.".to_string()));
+    }
+    let content_json = match input.custom_content_json {
+        Some(content) => Some(serde_json::to_string(&content)?),
+        None => None,
+    };
+    let conn = state.conn()?;
+    conn.execute(
+        "UPDATE service_items
+         SET item_type = ?1, title = ?2, linked_entity_id = ?3, custom_content_json = ?4,
+             position = COALESCE(?5, position), updated_at = datetime('now')
+         WHERE id = ?6 AND service_program_id = ?7",
+        params![
+            input.item_type,
+            input.title,
+            input.linked_entity_id,
+            content_json,
+            input.position,
+            id,
+            input.service_program_id
+        ],
+    )?;
+
+    get_service_item_by_id(&conn, id)?
+        .ok_or_else(|| AppError::Message("Service item not found.".to_string()))
+}
+
+#[tauri::command]
+pub fn delete_service_item(state: State<'_, AppState>, id: i64) -> AppResult<()> {
+    let conn = state.conn()?;
+    conn.execute("DELETE FROM service_items WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn reorder_service_items(
     state: State<'_, AppState>,
     service_program_id: i64,
