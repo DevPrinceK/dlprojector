@@ -373,6 +373,24 @@ export const localRepository = {
     return program;
   },
 
+  updateServiceProgram(id: EntityId, input: ServiceProgramInput) {
+    const db = loadDb();
+    const program = db.servicePrograms.find((item) => item.id === id);
+    if (!program) throw new Error("Service program not found.");
+    if (input.isActive ?? false) {
+      db.servicePrograms.forEach((candidate) => {
+        candidate.isActive = candidate.id === id;
+      });
+    }
+    program.title = input.title;
+    program.serviceDate = input.serviceDate;
+    program.notes = input.notes;
+    program.isActive = input.isActive ?? program.isActive;
+    program.updatedAt = nowIso();
+    saveDb(db);
+    return program;
+  },
+
   addServiceItem(input: ServiceItemInput) {
     const db = loadDb();
     const program = db.servicePrograms.find((item) => item.id === input.serviceProgramId);
