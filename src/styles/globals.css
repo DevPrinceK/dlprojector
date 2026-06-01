@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 214 45% 97%;
+    --foreground: 219 54% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 219 54% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 219 54% 12%;
+    --primary: 222 72% 18%;
+    --primary-foreground: 43 94% 86%;
+    --secondary: 219 34% 92%;
+    --secondary-foreground: 219 54% 12%;
+    --muted: 218 28% 92%;
+    --muted-foreground: 219 16% 42%;
+    --accent: 43 72% 54%;
+    --accent-foreground: 220 68% 13%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 219 24% 84%;
+    --input: 219 24% 84%;
+    --ring: 43 72% 54%;
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: Aptos, "Segoe UI", sans-serif;
+    margin: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .projection-bg {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(230, 191, 90, 0.22), transparent 28rem),
+      radial-gradient(circle at 88% 18%, rgba(96, 64, 158, 0.28), transparent 26rem),
+      linear-gradient(135deg, #071426 0%, #0a1d35 50%, #101827 100%);
+  }
+
+  .operator-bg {
+    background:
+      radial-gradient(circle at 12% 0%, rgba(230, 191, 90, 0.18), transparent 26rem),
+      radial-gradient(circle at 100% 20%, rgba(23, 50, 91, 0.14), transparent 30rem),
+      linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);
+  }
+
+  .dl-glass {
+    @apply border border-white/60 bg-white/[0.78] shadow-soft backdrop-blur-xl;
+  }
+
+  .projection-text {
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  .projection-card {
+    @apply border border-white/10 bg-white/[0.08] shadow-2xl backdrop-blur-sm;
+  }
+
+  .safe-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(12, 28, 51, 0.35) transparent;
+  }
+}
