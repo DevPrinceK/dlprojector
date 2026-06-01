@@ -4,13 +4,16 @@ import {
   Gauge,
   Image,
   Megaphone,
+  MonitorUp,
   Music,
   Settings,
   Sparkles,
   UsersRound
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { openProjectionWindow } from "../../lib/projection-window";
 import { useAppStore, type ControlView } from "../../stores/app.store";
+import { Button } from "../ui/button";
 
 const navItems: Array<{ id: ControlView; label: string; icon: typeof Gauge }> = [
   { id: "dashboard", label: "Dashboard", icon: Gauge },
@@ -26,6 +29,12 @@ const navItems: Array<{ id: ControlView; label: string; icon: typeof Gauge }> = 
 export function Sidebar() {
   const activeView = useAppStore((state) => state.activeView);
   const setActiveView = useAppStore((state) => state.setActiveView);
+  const pushToast = useAppStore((state) => state.pushToast);
+
+  const openProjection = async () => {
+    const status = await openProjectionWindow();
+    pushToast({ kind: "success", title: "Projection window opened", description: status });
+  };
 
   return (
     <aside className="hidden h-screen w-64 shrink-0 border-r border-white/70 bg-navy-900 px-4 py-5 text-white lg:flex lg:flex-col">
@@ -38,6 +47,11 @@ export function Sidebar() {
           <div className="text-xs text-gold-100">DLCF Legon</div>
         </div>
       </div>
+
+      <Button className="mb-5 w-full justify-start font-black shadow-lg" variant="gold" onClick={() => void openProjection()}>
+        <MonitorUp className="h-4 w-4" />
+        Open Projection Screen
+      </Button>
 
       <nav className="space-y-1">
         {navItems.map((item) => {
