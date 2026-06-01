@@ -10,6 +10,8 @@ export function required(value: string, fieldName: string) {
 
 export function isSupportedImagePath(path?: string | null) {
   if (!path) return true;
+  if (path.startsWith("data:image/")) return true;
+  if (/^https?:\/\/.+\.(png|jpe?g|webp)(\?.*)?$/i.test(path)) return true;
   const extension = path.split(".").pop()?.toLowerCase();
   return extension ? allowedImageExtensions.has(extension) : false;
 }
