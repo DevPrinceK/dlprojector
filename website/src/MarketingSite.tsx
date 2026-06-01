@@ -5,19 +5,19 @@ const downloadOptions = [
     platform: "Windows",
     format: "MSI installer and portable EXE",
     detail: "Recommended for most church media PCs and projection laptops.",
-    badge: "Most common"
+    badge: "Available"
   },
   {
     platform: "macOS",
     format: "Universal DMG",
     detail: "Prepared for Apple Silicon and Intel Macs used by media teams.",
-    badge: "Coming soon"
+    badge: "Available"
   },
   {
     platform: "Linux",
     format: "AppImage and DEB",
     detail: "For churches running Ubuntu, Debian, Mint, or portable Linux setups.",
-    badge: "Coming soon"
+    badge: "Available"
   }
 ];
 
@@ -183,7 +183,7 @@ export function MarketingSite() {
               <p className="format">{option.format}</p>
               <p>{option.detail}</p>
               <a href={releaseUrl} target="_blank" rel="noreferrer">
-                View release files
+                Download from GitHub
               </a>
             </article>
           ))}
