@@ -1,11 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, CalendarDays, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Edit3, Plus, Trash2 } from "lucide-react";
 import {
   addServiceItem,
   createServiceProgram,
+  deleteServiceItem,
+  deleteServiceProgram,
   getActiveServiceProgram,
   listServicePrograms,
   updateServiceProgram,
+  updateServiceItem,
   reorderServiceItems
 } from "../../features/service-program/service-program.api";
 import { toErrorMessage } from "../../lib/error-handling";
@@ -36,6 +39,8 @@ export function ServiceProgramPage() {
   const [itemForm, setItemForm] = useState({ itemType: "text" as ServiceItemType, title: "", body: "" });
   const [isProgramFormOpen, setIsProgramFormOpen] = useState(false);
   const [isItemFormOpen, setIsItemFormOpen] = useState(false);
+  const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [isSavingProgram, setIsSavingProgram] = useState(false);
   const [isSavingItem, setIsSavingItem] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +72,7 @@ export function ServiceProgramPage() {
     window.dispatchEvent(new CustomEvent<ServiceProgram>("dl:service-program-changed", { detail: selectedProgram }));
   };
 
-  const createProgram = async () => {
+  const saveProgram = async () => {
     if (isSavingProgram) return;
     const titleError = required(programForm.title, "Program title");
     if (titleError) {
@@ -76,12 +81,15 @@ export function ServiceProgramPage() {
     }
     try {
       setIsSavingProgram(true);
-      const saved = await createServiceProgram({ ...programForm, isActive: true });
+      const saved = editingProgramId
+        ? await updateServiceProgram(editingProgramId, { ...programForm, isActive: program?.id === editingProgramId ? program.isActive : false })
+        : await createServiceProgram({ ...programForm, isActive: true });
       setProgram(saved);
       await reload();
       announceProgramSelection(saved);
       setIsProgramFormOpen(false);
-      pushToast({ kind: "success", title: "Service program created" });
+      setEditingProgramId(null);
+      pushToast({ kind: "success", title: editingProgramId ? "Service program updated" : "Service program created" });
     } catch (error) {
       pushToast({ kind: "error", title: "Could not create program", description: toErrorMessage(error) });
     } finally {
@@ -89,7 +97,7 @@ export function ServiceProgramPage() {
     }
   };
 
-  const addCustomItem = async () => {
+  const saveCustomItem = async () => {
     if (isSavingItem) return;
     if (!program) return;
     const titleError = required(itemForm.title, "Item title");
@@ -100,16 +108,22 @@ export function ServiceProgramPage() {
     setIsSavingItem(true);
     const content = contentForItem(itemForm.itemType, itemForm.title, itemForm.body);
     try {
-      await addServiceItem({
+      const input = {
         serviceProgramId: program.id,
         itemType: itemForm.itemType,
         title: itemForm.title,
         customContentJson: content
-      });
+      };
+      if (editingItemId) {
+        await updateServiceItem(editingItemId, input);
+      } else {
+        await addServiceItem(input);
+      }
       setItemForm({ itemType: "text", title: "", body: "" });
+      setEditingItemId(null);
       setIsItemFormOpen(false);
       announceProgramSelection(await reload());
-      pushToast({ kind: "success", title: "Service item added" });
+      pushToast({ kind: "success", title: editingItemId ? "Service item updated" : "Service item added" });
     } catch (error) {
       pushToast({ kind: "error", title: "Could not add service item", description: toErrorMessage(error) });
     } finally {
@@ -149,6 +163,39 @@ export function ServiceProgramPage() {
     }
   };
 
+  const editProgram = (candidate: ServiceProgram) => {
+    setEditingProgramId(candidate.id);
+    setProgramForm({
+      title: candidate.title,
+      serviceDate: candidate.serviceDate ?? "",
+      notes: candidate.notes ?? ""
+    });
+    setIsProgramFormOpen(true);
+  };
+
+  const removeProgram = async (candidate: ServiceProgram) => {
+    await deleteServiceProgram(candidate.id);
+    pushToast({ kind: "info", title: "Service program deleted", description: candidate.title });
+    const selected = await reload();
+    announceProgramSelection(selected);
+  };
+
+  const editItem = (item: ServiceItem) => {
+    setEditingItemId(item.id);
+    setItemForm({
+      itemType: item.itemType,
+      title: item.title,
+      body: item.customContentJson?.body ?? ""
+    });
+    setIsItemFormOpen(true);
+  };
+
+  const removeItem = async (item: ServiceItem) => {
+    await deleteServiceItem(item.id);
+    pushToast({ kind: "info", title: "Service item deleted", description: item.title });
+    announceProgramSelection(await reload());
+  };
+
   const stageItem = (item: ServiceItem) => {
     const content = contentForServiceItem(item);
     setPreviewContent(content);
@@ -175,11 +222,26 @@ export function ServiceProgramPage() {
         description="Build the flow before service, reorder items, attach projected content, and move confidently through the program."
         action={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setIsProgramFormOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingProgramId(null);
+                setProgramForm({ title: "Sunday Worship Service", serviceDate: "", notes: "" });
+                setIsProgramFormOpen(true);
+              }}
+            >
               <CalendarDays className="h-4 w-4" />
               New Program
             </Button>
-            <Button variant="gold" onClick={() => setIsItemFormOpen(true)} disabled={!program}>
+            <Button
+              variant="gold"
+              onClick={() => {
+                setEditingItemId(null);
+                setItemForm({ itemType: "text", title: "", body: "" });
+                setIsItemFormOpen(true);
+              }}
+              disabled={!program}
+            >
               <Plus className="h-4 w-4" />
               Add Item
             </Button>
@@ -231,6 +293,14 @@ export function ServiceProgramPage() {
                         >
                           {candidate.isActive ? "Current" : "Use"}
                         </Button>
+                        <Button variant="outline" size="sm" onClick={() => editProgram(candidate)}>
+                          <Edit3 className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => void removeProgram(candidate)}>
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   );
@@ -274,6 +344,14 @@ export function ServiceProgramPage() {
                       <Button variant="gold" size="sm" onClick={() => void projectContent(contentForServiceItem(item))}>
                         Project
                       </Button>
+                      <Button variant="outline" size="sm" onClick={() => editItem(item)}>
+                        <Edit3 className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => void removeItem(item)}>
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
                     </div>
                   ))}
               </div>
@@ -286,16 +364,19 @@ export function ServiceProgramPage() {
 
       <Modal
         open={isProgramFormOpen}
-        onOpenChange={setIsProgramFormOpen}
-        title="Create Active Program"
-        description="Creating a new program makes it the active service flow."
+        onOpenChange={(open) => {
+          setIsProgramFormOpen(open);
+          if (!open) setEditingProgramId(null);
+        }}
+        title={editingProgramId ? "Edit Program" : "Create Active Program"}
+        description={editingProgramId ? "Update the service name, date, and description." : "Creating a new program makes it the active service flow."}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsProgramFormOpen(false)} disabled={isSavingProgram}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={() => void createProgram()} disabled={isSavingProgram}>
-              {isSavingProgram ? "Saving..." : "Create Program"}
+            <Button variant="gold" onClick={() => void saveProgram()} disabled={isSavingProgram}>
+              {isSavingProgram ? "Saving..." : editingProgramId ? "Update Program" : "Create Program"}
             </Button>
           </>
         }
@@ -315,16 +396,19 @@ export function ServiceProgramPage() {
 
       <Modal
         open={isItemFormOpen}
-        onOpenChange={setIsItemFormOpen}
-        title="Add Service Item"
+        onOpenChange={(open) => {
+          setIsItemFormOpen(open);
+          if (!open) setEditingItemId(null);
+        }}
+        title={editingItemId ? "Edit Service Item" : "Add Service Item"}
         description="Use text, blank, logo, or custom slides for simple service steps."
         footer={
           <>
             <Button variant="outline" onClick={() => setIsItemFormOpen(false)} disabled={isSavingItem}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={() => void addCustomItem()} disabled={!program || isSavingItem}>
-              {isSavingItem ? "Saving..." : "Add Item"}
+            <Button variant="gold" onClick={() => void saveCustomItem()} disabled={!program || isSavingItem}>
+              {isSavingItem ? "Saving..." : editingItemId ? "Update Item" : "Add Item"}
             </Button>
           </>
         }
