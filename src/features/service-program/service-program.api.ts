@@ -25,6 +25,12 @@ export async function createServiceProgram(input: ServiceProgramInput) {
   );
 }
 
+export async function updateServiceProgram(id: number, input: ServiceProgramInput) {
+  return tryInvokeCommand<ServiceProgram>("update_service_program", { id, input }, () =>
+    localRepository.updateServiceProgram(id, input)
+  );
+}
+
 export async function addServiceItem(input: ServiceItemInput) {
   return tryInvokeCommand<ServiceItem>("add_service_item", { input }, () => localRepository.addServiceItem(input));
 }
