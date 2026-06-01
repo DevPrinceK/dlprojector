@@ -26,3 +26,11 @@ pub struct HymnInput {
     pub lyrics_json: Value,
     pub is_active: Option<bool>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HymnImportResult {
+    pub hymnal: String,
+    pub hymns_imported: i64,
+    pub hymns_total: i64,
+}
