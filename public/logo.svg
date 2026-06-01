@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#071426"/>
+  <circle cx="256" cy="256" r="166" fill="#0A1D35" stroke="#E6BF5A" stroke-width="12"/>
+  <path d="M256 122V390" stroke="#E6BF5A" stroke-width="22" stroke-linecap="round"/>
+  <path d="M180 206H332" stroke="#E6BF5A" stroke-width="22" stroke-linecap="round"/>
+  <text x="256" y="432" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="54" font-weight="800" fill="#FFFFFF">DLCF</text>
+</svg>
