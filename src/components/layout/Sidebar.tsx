@@ -28,13 +28,13 @@ export function Sidebar() {
   const setActiveView = useAppStore((state) => state.setActiveView);
 
   return (
-    <aside className="hidden h-screen w-72 shrink-0 border-r border-white/70 bg-navy-900 px-4 py-5 text-white lg:flex lg:flex-col">
-      <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-300 text-lg font-black text-navy-900">
+    <aside className="hidden h-screen w-64 shrink-0 border-r border-white/70 bg-navy-900 px-4 py-5 text-white lg:flex lg:flex-col">
+      <div className="mb-7 flex items-center gap-3 px-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-300 text-base font-black text-navy-900">
           DL
         </div>
         <div>
-          <div className="text-lg font-black">DL Projector</div>
+          <div className="text-base font-black">DL Projector</div>
           <div className="text-xs text-gold-100">DLCF Legon</div>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function Sidebar() {
               type="button"
               onClick={() => setActiveView(item.id)}
               className={cn(
-                "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold transition",
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition",
                 isActive ? "bg-white text-navy-900 shadow" : "text-white/[0.74] hover:bg-white/10 hover:text-white"
               )}
             >
@@ -60,8 +60,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto rounded-3xl border border-white/10 bg-white/[0.08] p-4 text-sm text-white/[0.72]">
-        <UsersRound className="mb-3 h-5 w-5 text-gold-300" />
+      <div className="mt-auto rounded-xl border border-white/10 bg-white/[0.08] p-3 text-xs leading-relaxed text-white/[0.72]">
+        <UsersRound className="mb-2 h-5 w-5 text-gold-300" />
         Built for live service: quick, calm, offline, and projection-safe.
       </div>
     </aside>
