@@ -1,0 +1,6 @@
+<svg width="640" height="800" viewBox="0 0 640 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="800" rx="48" fill="#0A1D35"/>
+  <circle cx="320" cy="260" r="116" fill="#E6BF5A" fill-opacity="0.28"/>
+  <path d="M142 620C172 500 230 438 320 438C410 438 468 500 498 620" fill="#E6BF5A" fill-opacity="0.22"/>
+  <text x="320" y="704" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#E6BF5A">DLCF Legon</text>
+</svg>
