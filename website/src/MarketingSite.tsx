@@ -300,12 +300,12 @@ export function MarketingSite() {
           <div>
             <h3>Credits</h3>
             <p>Software by PKay Software Consultancy.</p>
-            <p>Built for churches, media teams, and live worship projection.</p>
+            <p>Built for churches, media teams, and live worship projection!</p>
           </div>
         </div>
         <div className="footer-bottom">
           <span>(c) 2026 PKay Software Consultancy. All rights reserved.</span>
-          <span>DL Projector v0.1.3</span>
+          <span>DL Projector v0.1.4</span>
         </div>
       </footer>
     </main>
