@@ -14,7 +14,7 @@ pub fn open(app: &AppHandle) -> AppResult<()> {
     WebviewWindowBuilder::new(
         app,
         "projection",
-        WebviewUrl::App("index.html?window=projection".into()),
+        WebviewUrl::App("index.html".into()),
     )
     .title("DL Projector Output")
     .inner_size(1280.0, 720.0)
