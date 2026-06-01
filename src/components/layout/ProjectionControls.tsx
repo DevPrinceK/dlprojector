@@ -1,4 +1,5 @@
 import { ChevronLeft, Maximize2, MonitorUp, RotateCcw, ScreenShareOff, Sparkles } from "lucide-react";
+import { openProjectionWindow } from "../../lib/projection-window";
 import { tryInvokeCommand } from "../../lib/tauri";
 import { useAppStore } from "../../stores/app.store";
 import { useProjectionStore } from "../../stores/projection.store";
@@ -13,10 +14,7 @@ export function ProjectionControls() {
   const emergencyReset = useProjectionStore((state) => state.emergencyReset);
 
   const openProjection = async () => {
-    await tryInvokeCommand("open_projection_window", undefined, () => {
-      window.open(`${window.location.origin}/#projection`, "dlprojector-projection", "popup,width=1280,height=720");
-    });
-    const status = await tryInvokeCommand<string>("projection_window_status", undefined, () => "browser projection window opened");
+    const status = await openProjectionWindow();
     pushToast({ kind: "success", title: "Projection window opened", description: status });
   };
 
@@ -41,7 +39,7 @@ export function ProjectionControls() {
     <div className="sticky top-0 z-30 border-b border-white/70 bg-white/[0.86] px-4 py-2.5 backdrop-blur-xl lg:px-6 xl:px-8">
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
-        <Button variant="default" size="sm" onClick={() => void openProjection()}>
+        <Button className="font-black" variant="default" size="sm" onClick={() => void openProjection()}>
           <MonitorUp className="h-4 w-4" />
           Open Projection
         </Button>
