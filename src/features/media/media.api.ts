@@ -11,3 +11,15 @@ export async function importMediaAsset(sourcePath: string) {
     throw new Error("Media import is available in the desktop app.");
   });
 }
+
+export async function importMediaDataUrl(fileName: string, dataUrl: string) {
+  return tryInvokeCommand<MediaAsset>("import_media_data_url", { fileName, dataUrl }, () => {
+    throw new Error("Media import is available in the desktop app.");
+  });
+}
+
+export async function importMediaUrl(url: string) {
+  return tryInvokeCommand<MediaAsset>("import_media_url", { url }, () => {
+    throw new Error("Media import is available in the desktop app.");
+  });
+}
