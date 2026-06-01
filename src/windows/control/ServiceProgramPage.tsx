@@ -4,6 +4,8 @@ import {
   addServiceItem,
   createServiceProgram,
   getActiveServiceProgram,
+  listServicePrograms,
+  updateServiceProgram,
   reorderServiceItems
 } from "../../features/service-program/service-program.api";
 import { toErrorMessage } from "../../lib/error-handling";
@@ -26,8 +28,10 @@ import { PageHeader } from "./components/PageHeader";
 export function ServiceProgramPage() {
   const pushToast = useAppStore((state) => state.pushToast);
   const previewContent = useProjectionStore((state) => state.previewContent);
+  const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
   const projectContent = useProjectionStore((state) => state.projectContent);
   const [program, setProgram] = useState<ServiceProgram | null>(null);
+  const [programs, setPrograms] = useState<ServiceProgram[]>([]);
   const [programForm, setProgramForm] = useState({ title: "Sunday Worship Service", serviceDate: "", notes: "" });
   const [itemForm, setItemForm] = useState({ itemType: "text" as ServiceItemType, title: "", body: "" });
   const [isProgramFormOpen, setIsProgramFormOpen] = useState(false);
@@ -39,9 +43,16 @@ export function ServiceProgramPage() {
   const reload = async () => {
     try {
       setIsLoading(true);
-      setProgram(await getActiveServiceProgram());
+      const [activeProgram, allPrograms] = await Promise.all([getActiveServiceProgram(), listServicePrograms()]);
+      const selectedProgram = program
+        ? allPrograms.find((candidate) => candidate.id === program.id) ?? activeProgram ?? allPrograms[0] ?? null
+        : activeProgram ?? allPrograms[0] ?? null;
+      setPrograms(allPrograms);
+      setProgram(selectedProgram);
+      return selectedProgram;
     } catch (error) {
       pushToast({ kind: "error", title: "Could not load service program", description: toErrorMessage(error) });
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -50,6 +61,11 @@ export function ServiceProgramPage() {
   useEffect(() => {
     void reload();
   }, []);
+
+  const announceProgramSelection = (selectedProgram: ServiceProgram | null) => {
+    if (!selectedProgram) return;
+    window.dispatchEvent(new CustomEvent<ServiceProgram>("dl:service-program-changed", { detail: selectedProgram }));
+  };
 
   const createProgram = async () => {
     if (isSavingProgram) return;
@@ -62,6 +78,8 @@ export function ServiceProgramPage() {
       setIsSavingProgram(true);
       const saved = await createServiceProgram({ ...programForm, isActive: true });
       setProgram(saved);
+      await reload();
+      announceProgramSelection(saved);
       setIsProgramFormOpen(false);
       pushToast({ kind: "success", title: "Service program created" });
     } catch (error) {
@@ -90,7 +108,7 @@ export function ServiceProgramPage() {
       });
       setItemForm({ itemType: "text", title: "", body: "" });
       setIsItemFormOpen(false);
-      await reload();
+      announceProgramSelection(await reload());
       pushToast({ kind: "success", title: "Service item added" });
     } catch (error) {
       pushToast({ kind: "error", title: "Could not add service item", description: toErrorMessage(error) });
@@ -107,8 +125,34 @@ export function ServiceProgramPage() {
       title: previewContent.title ?? previewContent.reference ?? previewContent.type,
       customContentJson: previewContent
     });
-    await reload();
+    announceProgramSelection(await reload());
     pushToast({ kind: "success", title: "Preview added to service" });
+  };
+
+  const chooseProgram = async (candidate: ServiceProgram, makeActive = false) => {
+    setProgram(candidate);
+    announceProgramSelection(candidate);
+    if (!makeActive || candidate.isActive) return;
+    try {
+      const updated = await updateServiceProgram(candidate.id, {
+        title: candidate.title,
+        serviceDate: candidate.serviceDate ?? undefined,
+        notes: candidate.notes ?? undefined,
+        isActive: true
+      });
+      setProgram(updated);
+      await reload();
+      announceProgramSelection(updated);
+      pushToast({ kind: "success", title: "Current service selected", description: updated.title });
+    } catch (error) {
+      pushToast({ kind: "error", title: "Could not select service", description: toErrorMessage(error) });
+    }
+  };
+
+  const stageItem = (item: ServiceItem) => {
+    const content = contentForServiceItem(item);
+    setPreviewContent(content);
+    pushToast({ kind: "success", title: "Loaded service item into preview", description: item.title });
   };
 
   const moveItem = async (item: ServiceItem, direction: -1 | 1) => {
@@ -120,7 +164,7 @@ export function ServiceProgramPage() {
     const nextItems = [...items];
     [nextItems[index], nextItems[swapIndex]] = [nextItems[swapIndex], nextItems[index]];
     await reorderServiceItems(program.id, nextItems.map((candidate) => candidate.id));
-    await reload();
+    announceProgramSelection(await reload());
   };
 
   return (
@@ -149,6 +193,57 @@ export function ServiceProgramPage() {
       <div className="grid gap-5">
         <Card className="dl-glass">
           <CardHeader>
+            <CardTitle>Services</CardTitle>
+            <CardDescription>
+              Select the recurring service you are preparing or mark it as the current projection service.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {programs.length ? (
+              <div className="safe-scrollbar flex gap-3 overflow-x-auto pb-2">
+                {programs.map((candidate) => {
+                  const isSelected = program?.id === candidate.id;
+                  return (
+                    <div
+                      key={candidate.id}
+                      className={`min-w-[240px] rounded-xl border p-4 text-left transition ${
+                        isSelected ? "border-gold-500 bg-gold-300/15" : "border-border bg-white/[0.72] hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate font-black">{candidate.title}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {candidate.serviceDate ?? "Recurring service"}
+                          </div>
+                        </div>
+                        {candidate.isActive ? <Badge>Current</Badge> : null}
+                      </div>
+                      <div className="mt-3 text-xs text-muted-foreground">{candidate.items.length} item(s)</div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={() => void chooseProgram(candidate)}>
+                          Open
+                        </Button>
+                        <Button
+                          variant={candidate.isActive ? "outline" : "gold"}
+                          size="sm"
+                          onClick={() => void chooseProgram(candidate, true)}
+                        >
+                          {candidate.isActive ? "Current" : "Use"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState title="No services yet" description="Create recurring service programs such as Sunday Worship Service or Monday Bible Studies." />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="dl-glass">
+          <CardHeader>
             <CardTitle>{program?.title ?? "No active program"}</CardTitle>
             <CardDescription>{isLoading ? "Loading service program..." : program?.serviceDate ?? "Create or load a service program to begin."}</CardDescription>
           </CardHeader>
@@ -173,7 +268,10 @@ export function ServiceProgramPage() {
                       <Button variant="outline" size="icon" onClick={() => void moveItem(item, 1)}>
                         <ArrowDown className="h-4 w-4" />
                       </Button>
-                      <Button variant="gold" size="sm" onClick={() => void projectContent(item.customContentJson ?? contentForItem(item.itemType, item.title, ""))}>
+                      <Button variant="outline" size="sm" onClick={() => stageItem(item)}>
+                        Stage
+                      </Button>
+                      <Button variant="gold" size="sm" onClick={() => void projectContent(contentForServiceItem(item))}>
                         Project
                       </Button>
                     </div>
@@ -254,6 +352,11 @@ export function ServiceProgramPage() {
       </Modal>
     </section>
   );
+}
+
+function contentForServiceItem(item: ServiceItem): ProjectionContent {
+  if (item.customContentJson) return item.customContentJson;
+  return contentForItem(item.itemType, item.title, "");
 }
 
 function contentForItem(type: ServiceItemType, title: string, body: string): ProjectionContent {
