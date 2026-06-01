@@ -19,6 +19,18 @@
         "minWidth": 1100,
         "minHeight": 720,
         "resizable": true
+      },
+      {
+        "label": "projection",
+        "title": "DL Projector Output",
+        "url": "index.html",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 450,
+        "resizable": true,
+        "visible": false,
+        "focus": false
       }
     ],
     "security": {
