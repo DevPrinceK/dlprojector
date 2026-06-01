@@ -39,3 +39,10 @@ export interface ScriptureSearchResult {
   version: string;
   verses: BibleVerse[];
 }
+
+export interface ScriptureImportResult {
+  version: string;
+  booksImported: number;
+  versesImported: number;
+  versesTotal: number;
+}
