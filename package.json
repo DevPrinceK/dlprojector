@@ -9,7 +9,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "website:dev": "vite --config website/vite.config.ts",
+    "website:build": "vite build --config website/vite.config.ts",
+    "website:preview": "vite preview --config website/vite.config.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.0",

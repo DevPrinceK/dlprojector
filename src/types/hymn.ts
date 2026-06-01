@@ -24,3 +24,9 @@ export interface HymnInput {
   lyricsJson: HymnLyrics;
   isActive?: boolean;
 }
+
+export interface HymnImportResult {
+  hymnal: string;
+  hymnsImported: number;
+  hymnsTotal: number;
+}

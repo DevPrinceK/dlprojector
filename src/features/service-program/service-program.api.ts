@@ -25,8 +25,26 @@ export async function createServiceProgram(input: ServiceProgramInput) {
   );
 }
 
+export async function updateServiceProgram(id: number, input: ServiceProgramInput) {
+  return tryInvokeCommand<ServiceProgram>("update_service_program", { id, input }, () =>
+    localRepository.updateServiceProgram(id, input)
+  );
+}
+
+export async function deleteServiceProgram(id: number) {
+  return tryInvokeCommand<void>("delete_service_program", { id }, () => localRepository.deleteServiceProgram(id));
+}
+
 export async function addServiceItem(input: ServiceItemInput) {
   return tryInvokeCommand<ServiceItem>("add_service_item", { input }, () => localRepository.addServiceItem(input));
+}
+
+export async function updateServiceItem(id: number, input: ServiceItemInput) {
+  return tryInvokeCommand<ServiceItem>("update_service_item", { id, input }, () => localRepository.updateServiceItem(id, input));
+}
+
+export async function deleteServiceItem(id: number) {
+  return tryInvokeCommand<void>("delete_service_item", { id }, () => localRepository.deleteServiceItem(id));
 }
 
 export async function reorderServiceItems(serviceProgramId: number, itemIds: number[]) {

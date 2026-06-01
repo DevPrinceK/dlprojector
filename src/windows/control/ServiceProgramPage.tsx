@@ -1,9 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, CalendarDays, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Edit3, Plus, Trash2 } from "lucide-react";
 import {
   addServiceItem,
   createServiceProgram,
+  deleteServiceItem,
+  deleteServiceProgram,
   getActiveServiceProgram,
+  listServicePrograms,
+  updateServiceProgram,
+  updateServiceItem,
   reorderServiceItems
 } from "../../features/service-program/service-program.api";
 import { toErrorMessage } from "../../lib/error-handling";
@@ -26,12 +31,16 @@ import { PageHeader } from "./components/PageHeader";
 export function ServiceProgramPage() {
   const pushToast = useAppStore((state) => state.pushToast);
   const previewContent = useProjectionStore((state) => state.previewContent);
+  const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
   const projectContent = useProjectionStore((state) => state.projectContent);
   const [program, setProgram] = useState<ServiceProgram | null>(null);
+  const [programs, setPrograms] = useState<ServiceProgram[]>([]);
   const [programForm, setProgramForm] = useState({ title: "Sunday Worship Service", serviceDate: "", notes: "" });
   const [itemForm, setItemForm] = useState({ itemType: "text" as ServiceItemType, title: "", body: "" });
   const [isProgramFormOpen, setIsProgramFormOpen] = useState(false);
   const [isItemFormOpen, setIsItemFormOpen] = useState(false);
+  const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [isSavingProgram, setIsSavingProgram] = useState(false);
   const [isSavingItem, setIsSavingItem] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,9 +48,16 @@ export function ServiceProgramPage() {
   const reload = async () => {
     try {
       setIsLoading(true);
-      setProgram(await getActiveServiceProgram());
+      const [activeProgram, allPrograms] = await Promise.all([getActiveServiceProgram(), listServicePrograms()]);
+      const selectedProgram = program
+        ? allPrograms.find((candidate) => candidate.id === program.id) ?? activeProgram ?? allPrograms[0] ?? null
+        : activeProgram ?? allPrograms[0] ?? null;
+      setPrograms(allPrograms);
+      setProgram(selectedProgram);
+      return selectedProgram;
     } catch (error) {
       pushToast({ kind: "error", title: "Could not load service program", description: toErrorMessage(error) });
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +67,12 @@ export function ServiceProgramPage() {
     void reload();
   }, []);
 
-  const createProgram = async () => {
+  const announceProgramSelection = (selectedProgram: ServiceProgram | null) => {
+    if (!selectedProgram) return;
+    window.dispatchEvent(new CustomEvent<ServiceProgram>("dl:service-program-changed", { detail: selectedProgram }));
+  };
+
+  const saveProgram = async () => {
     if (isSavingProgram) return;
     const titleError = required(programForm.title, "Program title");
     if (titleError) {
@@ -60,10 +81,15 @@ export function ServiceProgramPage() {
     }
     try {
       setIsSavingProgram(true);
-      const saved = await createServiceProgram({ ...programForm, isActive: true });
+      const saved = editingProgramId
+        ? await updateServiceProgram(editingProgramId, { ...programForm, isActive: program?.id === editingProgramId ? program.isActive : false })
+        : await createServiceProgram({ ...programForm, isActive: true });
       setProgram(saved);
+      await reload();
+      announceProgramSelection(saved);
       setIsProgramFormOpen(false);
-      pushToast({ kind: "success", title: "Service program created" });
+      setEditingProgramId(null);
+      pushToast({ kind: "success", title: editingProgramId ? "Service program updated" : "Service program created" });
     } catch (error) {
       pushToast({ kind: "error", title: "Could not create program", description: toErrorMessage(error) });
     } finally {
@@ -71,7 +97,7 @@ export function ServiceProgramPage() {
     }
   };
 
-  const addCustomItem = async () => {
+  const saveCustomItem = async () => {
     if (isSavingItem) return;
     if (!program) return;
     const titleError = required(itemForm.title, "Item title");
@@ -82,16 +108,22 @@ export function ServiceProgramPage() {
     setIsSavingItem(true);
     const content = contentForItem(itemForm.itemType, itemForm.title, itemForm.body);
     try {
-      await addServiceItem({
+      const input = {
         serviceProgramId: program.id,
         itemType: itemForm.itemType,
         title: itemForm.title,
         customContentJson: content
-      });
+      };
+      if (editingItemId) {
+        await updateServiceItem(editingItemId, input);
+      } else {
+        await addServiceItem(input);
+      }
       setItemForm({ itemType: "text", title: "", body: "" });
+      setEditingItemId(null);
       setIsItemFormOpen(false);
-      await reload();
-      pushToast({ kind: "success", title: "Service item added" });
+      announceProgramSelection(await reload());
+      pushToast({ kind: "success", title: editingItemId ? "Service item updated" : "Service item added" });
     } catch (error) {
       pushToast({ kind: "error", title: "Could not add service item", description: toErrorMessage(error) });
     } finally {
@@ -107,8 +139,67 @@ export function ServiceProgramPage() {
       title: previewContent.title ?? previewContent.reference ?? previewContent.type,
       customContentJson: previewContent
     });
-    await reload();
+    announceProgramSelection(await reload());
     pushToast({ kind: "success", title: "Preview added to service" });
+  };
+
+  const chooseProgram = async (candidate: ServiceProgram, makeActive = false) => {
+    setProgram(candidate);
+    announceProgramSelection(candidate);
+    if (!makeActive || candidate.isActive) return;
+    try {
+      const updated = await updateServiceProgram(candidate.id, {
+        title: candidate.title,
+        serviceDate: candidate.serviceDate ?? undefined,
+        notes: candidate.notes ?? undefined,
+        isActive: true
+      });
+      setProgram(updated);
+      await reload();
+      announceProgramSelection(updated);
+      pushToast({ kind: "success", title: "Current service selected", description: updated.title });
+    } catch (error) {
+      pushToast({ kind: "error", title: "Could not select service", description: toErrorMessage(error) });
+    }
+  };
+
+  const editProgram = (candidate: ServiceProgram) => {
+    setEditingProgramId(candidate.id);
+    setProgramForm({
+      title: candidate.title,
+      serviceDate: candidate.serviceDate ?? "",
+      notes: candidate.notes ?? ""
+    });
+    setIsProgramFormOpen(true);
+  };
+
+  const removeProgram = async (candidate: ServiceProgram) => {
+    await deleteServiceProgram(candidate.id);
+    pushToast({ kind: "info", title: "Service program deleted", description: candidate.title });
+    const selected = await reload();
+    announceProgramSelection(selected);
+  };
+
+  const editItem = (item: ServiceItem) => {
+    setEditingItemId(item.id);
+    setItemForm({
+      itemType: item.itemType,
+      title: item.title,
+      body: item.customContentJson?.body ?? ""
+    });
+    setIsItemFormOpen(true);
+  };
+
+  const removeItem = async (item: ServiceItem) => {
+    await deleteServiceItem(item.id);
+    pushToast({ kind: "info", title: "Service item deleted", description: item.title });
+    announceProgramSelection(await reload());
+  };
+
+  const stageItem = (item: ServiceItem) => {
+    const content = contentForServiceItem(item);
+    setPreviewContent(content);
+    pushToast({ kind: "success", title: "Loaded service item into preview", description: item.title });
   };
 
   const moveItem = async (item: ServiceItem, direction: -1 | 1) => {
@@ -120,7 +211,7 @@ export function ServiceProgramPage() {
     const nextItems = [...items];
     [nextItems[index], nextItems[swapIndex]] = [nextItems[swapIndex], nextItems[index]];
     await reorderServiceItems(program.id, nextItems.map((candidate) => candidate.id));
-    await reload();
+    announceProgramSelection(await reload());
   };
 
   return (
@@ -131,11 +222,26 @@ export function ServiceProgramPage() {
         description="Build the flow before service, reorder items, attach projected content, and move confidently through the program."
         action={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setIsProgramFormOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingProgramId(null);
+                setProgramForm({ title: "Sunday Worship Service", serviceDate: "", notes: "" });
+                setIsProgramFormOpen(true);
+              }}
+            >
               <CalendarDays className="h-4 w-4" />
               New Program
             </Button>
-            <Button variant="gold" onClick={() => setIsItemFormOpen(true)} disabled={!program}>
+            <Button
+              variant="gold"
+              onClick={() => {
+                setEditingItemId(null);
+                setItemForm({ itemType: "text", title: "", body: "" });
+                setIsItemFormOpen(true);
+              }}
+              disabled={!program}
+            >
               <Plus className="h-4 w-4" />
               Add Item
             </Button>
@@ -147,6 +253,65 @@ export function ServiceProgramPage() {
       />
 
       <div className="grid gap-5">
+        <Card className="dl-glass">
+          <CardHeader>
+            <CardTitle>Services</CardTitle>
+            <CardDescription>
+              Select the recurring service you are preparing or mark it as the current projection service.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {programs.length ? (
+              <div className="safe-scrollbar flex gap-3 overflow-x-auto pb-2">
+                {programs.map((candidate) => {
+                  const isSelected = program?.id === candidate.id;
+                  return (
+                    <div
+                      key={candidate.id}
+                      className={`min-w-[240px] rounded-xl border p-4 text-left transition ${
+                        isSelected ? "border-gold-500 bg-gold-300/15" : "border-border bg-white/[0.72] hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate font-black">{candidate.title}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {candidate.serviceDate ?? "Recurring service"}
+                          </div>
+                        </div>
+                        {candidate.isActive ? <Badge>Current</Badge> : null}
+                      </div>
+                      <div className="mt-3 text-xs text-muted-foreground">{candidate.items.length} item(s)</div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={() => void chooseProgram(candidate)}>
+                          Open
+                        </Button>
+                        <Button
+                          variant={candidate.isActive ? "outline" : "gold"}
+                          size="sm"
+                          onClick={() => void chooseProgram(candidate, true)}
+                        >
+                          {candidate.isActive ? "Current" : "Use"}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => editProgram(candidate)}>
+                          <Edit3 className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => void removeProgram(candidate)}>
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState title="No services yet" description="Create recurring service programs such as Sunday Worship Service or Monday Bible Studies." />
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="dl-glass">
           <CardHeader>
             <CardTitle>{program?.title ?? "No active program"}</CardTitle>
@@ -173,8 +338,19 @@ export function ServiceProgramPage() {
                       <Button variant="outline" size="icon" onClick={() => void moveItem(item, 1)}>
                         <ArrowDown className="h-4 w-4" />
                       </Button>
-                      <Button variant="gold" size="sm" onClick={() => void projectContent(item.customContentJson ?? contentForItem(item.itemType, item.title, ""))}>
+                      <Button variant="outline" size="sm" onClick={() => stageItem(item)}>
+                        Stage
+                      </Button>
+                      <Button variant="gold" size="sm" onClick={() => void projectContent(contentForServiceItem(item))}>
                         Project
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => editItem(item)}>
+                        <Edit3 className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => void removeItem(item)}>
+                        <Trash2 className="h-4 w-4" />
+                        Delete
                       </Button>
                     </div>
                   ))}
@@ -188,16 +364,19 @@ export function ServiceProgramPage() {
 
       <Modal
         open={isProgramFormOpen}
-        onOpenChange={setIsProgramFormOpen}
-        title="Create Active Program"
-        description="Creating a new program makes it the active service flow."
+        onOpenChange={(open) => {
+          setIsProgramFormOpen(open);
+          if (!open) setEditingProgramId(null);
+        }}
+        title={editingProgramId ? "Edit Program" : "Create Active Program"}
+        description={editingProgramId ? "Update the service name, date, and description." : "Creating a new program makes it the active service flow."}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsProgramFormOpen(false)} disabled={isSavingProgram}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={() => void createProgram()} disabled={isSavingProgram}>
-              {isSavingProgram ? "Saving..." : "Create Program"}
+            <Button variant="gold" onClick={() => void saveProgram()} disabled={isSavingProgram}>
+              {isSavingProgram ? "Saving..." : editingProgramId ? "Update Program" : "Create Program"}
             </Button>
           </>
         }
@@ -217,16 +396,19 @@ export function ServiceProgramPage() {
 
       <Modal
         open={isItemFormOpen}
-        onOpenChange={setIsItemFormOpen}
-        title="Add Service Item"
+        onOpenChange={(open) => {
+          setIsItemFormOpen(open);
+          if (!open) setEditingItemId(null);
+        }}
+        title={editingItemId ? "Edit Service Item" : "Add Service Item"}
         description="Use text, blank, logo, or custom slides for simple service steps."
         footer={
           <>
             <Button variant="outline" onClick={() => setIsItemFormOpen(false)} disabled={isSavingItem}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={() => void addCustomItem()} disabled={!program || isSavingItem}>
-              {isSavingItem ? "Saving..." : "Add Item"}
+            <Button variant="gold" onClick={() => void saveCustomItem()} disabled={!program || isSavingItem}>
+              {isSavingItem ? "Saving..." : editingItemId ? "Update Item" : "Add Item"}
             </Button>
           </>
         }
@@ -254,6 +436,11 @@ export function ServiceProgramPage() {
       </Modal>
     </section>
   );
+}
+
+function contentForServiceItem(item: ServiceItem): ProjectionContent {
+  if (item.customContentJson) return item.customContentJson;
+  return contentForItem(item.itemType, item.title, "");
 }
 
 function contentForItem(type: ServiceItemType, title: string, body: string): ProjectionContent {

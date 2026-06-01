@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Image, Upload } from "lucide-react";
-import { importMediaAsset, listMediaAssets } from "../../features/media/media.api";
+import { importMediaAsset, importMediaDataUrl, importMediaUrl, listMediaAssets } from "../../features/media/media.api";
 import { toErrorMessage } from "../../lib/error-handling";
 import { validateImagePath } from "../../lib/validators";
 import { useAppStore } from "../../stores/app.store";
@@ -16,6 +16,8 @@ export function MediaLibraryPage() {
   const pushToast = useAppStore((state) => state.pushToast);
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [sourcePath, setSourcePath] = useState("");
+  const [selectedImage, setSelectedImage] = useState<{ name: string; dataUrl: string } | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,16 +39,24 @@ export function MediaLibraryPage() {
 
   const importAsset = async () => {
     if (isSaving) return;
-    const imageError = validateImagePath(sourcePath);
+    const imageError = validateImagePath(sourcePath || imageUrl || selectedImage?.dataUrl);
     if (imageError) {
       pushToast({ kind: "warning", title: imageError });
       return;
     }
     try {
       setIsSaving(true);
-      await importMediaAsset(sourcePath);
+      if (selectedImage) {
+        await importMediaDataUrl(selectedImage.name, selectedImage.dataUrl);
+      } else if (imageUrl) {
+        await importMediaUrl(imageUrl);
+      } else {
+        await importMediaAsset(sourcePath);
+      }
       pushToast({ kind: "success", title: "Media imported" });
       setSourcePath("");
+      setSelectedImage(null);
+      setImageUrl("");
       setIsImportOpen(false);
       await reload();
     } catch (error) {
@@ -110,7 +120,34 @@ export function MediaLibraryPage() {
           </>
         }
       >
-        <Input value={sourcePath} onChange={(event) => setSourcePath(event.target.value)} placeholder="C:\\path\\to\\image.png" />
+        <div className="grid gap-3">
+          <label className="inline-flex">
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  if (typeof reader.result === "string") {
+                    setSelectedImage({ name: file.name.replace(/\.[^.]+$/, ""), dataUrl: reader.result });
+                    setSourcePath("");
+                    setImageUrl("");
+                  }
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            <span className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow">
+              Pick Image from PC
+            </span>
+          </label>
+          <Input value={imageUrl} onChange={(event) => { setImageUrl(event.target.value); setSelectedImage(null); setSourcePath(""); }} placeholder="Or paste https:// image link" />
+          <Input value={sourcePath} onChange={(event) => { setSourcePath(event.target.value); setSelectedImage(null); setImageUrl(""); }} placeholder="Advanced: C:\\path\\to\\image.png" />
+          {selectedImage ? <img src={selectedImage.dataUrl} alt="" className="h-36 rounded-xl object-cover" /> : null}
+        </div>
       </Modal>
     </section>
   );

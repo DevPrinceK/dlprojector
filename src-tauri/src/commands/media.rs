@@ -1,3 +1,4 @@
+use base64::Engine;
 use rusqlite::{params, OptionalExtension};
 use tauri::State;
 
@@ -20,6 +21,76 @@ pub fn import_media_asset(state: State<'_, AppState>, source_path: String) -> Ap
             file_type,
             file_size
         ],
+    )?;
+
+    get_media_asset_by_id(&conn, conn.last_insert_rowid())?
+        .ok_or_else(|| AppError::Message("Could not load imported media asset.".to_string()))
+}
+
+#[tauri::command]
+pub fn import_media_data_url(state: State<'_, AppState>, file_name: String, data_url: String) -> AppResult<MediaAsset> {
+    let (metadata, encoded) = data_url
+        .split_once(',')
+        .ok_or_else(|| AppError::Validation("Invalid image data.".to_string()))?;
+    let extension = if metadata.contains("image/png") {
+        "png"
+    } else if metadata.contains("image/jpeg") {
+        "jpg"
+    } else if metadata.contains("image/webp") {
+        "webp"
+    } else {
+        return Err(AppError::Validation("Image must be PNG, JPG, JPEG, or WEBP.".to_string()));
+    };
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|_| AppError::Validation("Image data could not be decoded.".to_string()))?;
+    std::fs::create_dir_all(&state.media_dir)?;
+    let safe_stem = file_name
+        .chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string();
+    let safe_stem = if safe_stem.is_empty() { "image".to_string() } else { safe_stem };
+    let stored_name = format!("{}-{}.{}", safe_stem, uuid::Uuid::new_v4(), extension);
+    let destination = state.media_dir.join(&stored_name);
+    std::fs::write(&destination, &bytes)?;
+
+    let conn = state.conn()?;
+    conn.execute(
+        "INSERT INTO media_assets(file_name, file_path, file_type, file_size)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![stored_name, destination.to_string_lossy().to_string(), extension, bytes.len() as i64],
+    )?;
+
+    get_media_asset_by_id(&conn, conn.last_insert_rowid())?
+        .ok_or_else(|| AppError::Message("Could not load imported media asset.".to_string()))
+}
+
+#[tauri::command]
+pub fn import_media_url(state: State<'_, AppState>, url: String) -> AppResult<MediaAsset> {
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err(AppError::Validation("Image URL must start with http:// or https://.".to_string()));
+    }
+    let file_name = url
+        .rsplit('/')
+        .next()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("remote-image")
+        .to_string();
+    let file_type = file_name
+        .split('.')
+        .last()
+        .unwrap_or("url")
+        .split('?')
+        .next()
+        .unwrap_or("url")
+        .to_string();
+    let conn = state.conn()?;
+    conn.execute(
+        "INSERT INTO media_assets(file_name, file_path, file_type, file_size)
+         VALUES (?1, ?2, ?3, 0)",
+        params![file_name, url, file_type],
     )?;
 
     get_media_asset_by_id(&conn, conn.last_insert_rowid())?

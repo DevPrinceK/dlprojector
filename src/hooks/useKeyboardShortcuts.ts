@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAppStore } from "../stores/app.store";
 import { useProjectionStore } from "../stores/projection.store";
-import { tryInvokeCommand } from "../lib/tauri";
+import { openProjectionWindow } from "../lib/projection-window";
 
 export function useKeyboardShortcuts() {
   const setActiveView = useAppStore((state) => state.setActiveView);
@@ -25,10 +25,8 @@ export function useKeyboardShortcuts() {
 
       if (event.ctrlKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
-        await tryInvokeCommand("open_projection_window", undefined, () => {
-          window.open(`${window.location.origin}/#projection`, "dlprojector-projection", "popup,width=1280,height=720");
-        });
-        pushToast({ kind: "success", title: "Projection window opened" });
+        const status = await openProjectionWindow();
+        pushToast({ kind: "success", title: "Projection window opened", description: status });
         return;
       }
 

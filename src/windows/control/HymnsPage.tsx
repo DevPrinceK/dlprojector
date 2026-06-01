@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Edit3, Music, Trash2 } from "lucide-react";
-import { createHymn, deleteHymn, listHymns, updateHymn } from "../../features/hymns/hymn.api";
+import { ArrowLeft, ArrowRight, Edit3, Music, Search, Trash2 } from "lucide-react";
+import { createHymn, deleteHymn, searchHymns, updateHymn } from "../../features/hymns/hymn.api";
 import { hymnToProjection, parseLyricsToStanzas } from "../../features/hymns/hymn.utils";
 import { toErrorMessage } from "../../lib/error-handling";
 import { required } from "../../lib/validators";
@@ -27,6 +27,7 @@ export function HymnsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState("");
   const [form, setForm] = useState({
     number: "",
     title: "",
@@ -35,10 +36,10 @@ export function HymnsPage() {
     lyrics: ""
   });
 
-  const reload = async () => {
+  const reload = async (nextQuery = query) => {
     try {
       setIsLoading(true);
-      setHymns(await listHymns());
+      setHymns(await searchHymns(nextQuery));
     } catch (error) {
       pushToast({ kind: "error", title: "Could not load hymns", description: toErrorMessage(error) });
     } finally {
@@ -49,6 +50,11 @@ export function HymnsPage() {
   useEffect(() => {
     void reload();
   }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void reload(query), 180);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
 
   const selectHymn = (hymn: Hymn, index = 0) => {
     setSelected(hymn);
@@ -139,6 +145,24 @@ export function HymnsPage() {
           </Button>
         }
       />
+
+      <form
+        className="mb-5 flex gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void reload(query);
+        }}
+      >
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search hymn title, number, category, or lyrics..."
+        />
+        <Button type="submit" disabled={isLoading}>
+          <Search className="h-4 w-4" />
+          Search
+        </Button>
+      </form>
 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="dl-glass">

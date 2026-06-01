@@ -15,6 +15,7 @@ import type { Personality } from "../../types/personality";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { ImagePicker } from "../../components/ui/image-picker";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Modal } from "../../components/ui/modal";
@@ -212,9 +213,7 @@ export function PersonalityPage() {
           <Field label="Short bio">
             <Textarea value={form.shortBio} onChange={(event) => setForm({ ...form, shortBio: event.target.value })} />
           </Field>
-          <Field label="Photo path">
-            <Input value={form.photoPath} onChange={(event) => setForm({ ...form, photoPath: event.target.value })} />
-          </Field>
+          <ImagePicker label="Photo" value={form.photoPath} onChange={(photoPath) => setForm({ ...form, photoPath })} />
         </div>
       </Modal>
     </section>

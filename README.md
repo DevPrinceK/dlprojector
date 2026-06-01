@@ -35,3 +35,8 @@ npm run tauri -- info
 - Projection is designed as a separate Tauri window and can be controlled from the operator window.
 - When run in a normal browser, the frontend uses safe local fallback data so UI development remains possible without Tauri.
 - The SQLite schema includes default seed content for smoke testing and is ready for a full Bible import dataset.
+
+## External URLS (CREDITS)
+
+- GHS: `https://github.com/marvinjude/gospel-hymns.git`
+- Bible: `https://github.com/scrollmapper/bible_databases.git`

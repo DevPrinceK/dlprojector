@@ -15,6 +15,7 @@ import type { Announcement } from "../../types/announcement";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { ImagePicker } from "../../components/ui/image-picker";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
@@ -213,9 +214,7 @@ export function AnnouncementsPage() {
               <Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} />
             </Field>
           </div>
-          <Field label="Image path">
-            <Input value={form.imagePath} onChange={(event) => setForm({ ...form, imagePath: event.target.value })} />
-          </Field>
+          <ImagePicker label="Image" value={form.imagePath} onChange={(imagePath) => setForm({ ...form, imagePath })} />
         </div>
       </Modal>
     </section>
