@@ -1,0 +1,10 @@
+dist
+dist-website
+node_modules
+src-tauri/target
+src-tauri/gen
+.git
+.github
+.env
+.env.*
+*.log
