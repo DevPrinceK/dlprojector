@@ -76,7 +76,9 @@ export function MarketingSite() {
     <main className="site-shell">
       <header className="topbar">
         <a className="brand-lockup" href="#top" aria-label="DL Projector home">
-          <span className="brand-mark">DL</span>
+          <span className="brand-mark">
+            <img src="/dlprojector-icon.ico" alt="" aria-hidden="true" />
+          </span>
           <span>
             <strong>DL Projector</strong>
             <small>Church projection software</small>
@@ -259,7 +261,9 @@ export function MarketingSite() {
 
       <footer className="site-footer">
         <div className="footer-brand">
-          <span className="brand-mark">DL</span>
+          <span className="brand-mark">
+            <img src="/dlprojector-icon.ico" alt="" aria-hidden="true" />
+          </span>
           <div>
             <h2>DL Projector</h2>
             <p>

@@ -72,11 +72,18 @@ a {
   height: 3.25rem;
   place-items: center;
   border-radius: 1.05rem;
-  background: linear-gradient(145deg, #f5d769, #d9a829);
-  color: #071426;
-  font-weight: 950;
-  letter-spacing: -0.06em;
-  box-shadow: inset 0 -8px 18px rgba(96, 67, 5, 0.18);
+  background: linear-gradient(145deg, rgba(245, 215, 105, 0.35), rgba(7, 20, 38, 0.08));
+  box-shadow:
+    inset 0 -8px 18px rgba(96, 67, 5, 0.12),
+    0 12px 28px rgba(7, 20, 38, 0.14);
+  overflow: hidden;
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .brand-lockup strong {
