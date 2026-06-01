@@ -347,7 +347,7 @@ export const localRepository = {
   },
 
   listServicePrograms() {
-    return loadDb().servicePrograms;
+    return loadDb().servicePrograms.filter((program) => !program.deletedAt);
   },
 
   createServiceProgram(input: ServiceProgramInput) {
@@ -391,6 +391,13 @@ export const localRepository = {
     return program;
   },
 
+  deleteServiceProgram(id: EntityId) {
+    const db = loadDb();
+    const program = db.servicePrograms.find((item) => item.id === id);
+    if (program) program.deletedAt = nowIso();
+    saveDb(db);
+  },
+
   addServiceItem(input: ServiceItemInput) {
     const db = loadDb();
     const program = db.servicePrograms.find((item) => item.id === input.serviceProgramId);
@@ -411,6 +418,32 @@ export const localRepository = {
     program.items.sort((a, b) => a.position - b.position);
     saveDb(db);
     return item;
+  },
+
+  updateServiceItem(id: EntityId, input: ServiceItemInput) {
+    const db = loadDb();
+    const program = db.servicePrograms.find((item) => item.id === input.serviceProgramId);
+    if (!program) throw new Error("Service program not found.");
+    const item = program.items.find((candidate) => candidate.id === id);
+    if (!item) throw new Error("Service item not found.");
+    Object.assign(item, {
+      itemType: input.itemType,
+      title: input.title,
+      linkedEntityId: input.linkedEntityId,
+      customContentJson: input.customContentJson,
+      position: input.position ?? item.position,
+      updatedAt: nowIso()
+    });
+    saveDb(db);
+    return item;
+  },
+
+  deleteServiceItem(id: EntityId) {
+    const db = loadDb();
+    db.servicePrograms.forEach((program) => {
+      program.items = program.items.filter((item) => item.id !== id);
+    });
+    saveDb(db);
   },
 
   reorderServiceItems(serviceProgramId: EntityId, itemIds: EntityId[]) {
