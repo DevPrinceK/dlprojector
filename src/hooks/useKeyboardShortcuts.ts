@@ -26,7 +26,7 @@ export function useKeyboardShortcuts() {
       if (event.ctrlKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
         await tryInvokeCommand("open_projection_window", undefined, () => {
-          window.open(`${window.location.origin}/?window=projection`, "dlprojector-projection", "popup,width=1280,height=720");
+          window.open(`${window.location.origin}/#projection`, "dlprojector-projection", "popup,width=1280,height=720");
         });
         pushToast({ kind: "success", title: "Projection window opened" });
         return;
