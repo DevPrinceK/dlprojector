@@ -118,7 +118,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Tauri bundles
+      - name: Validate Apple signing certificate
+        if: runner.os == 'macOS' && vars.ENABLE_APPLE_SIGNING == 'true'
+        shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -126,6 +128,75 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for variable in \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            APPLE_SIGNING_IDENTITY \
+            APPLE_ID \
+            APPLE_PASSWORD \
+            APPLE_TEAM_ID
+          do
+            if [ -z "${!variable}" ]; then
+              echo "::error::ENABLE_APPLE_SIGNING is true, but $variable is missing."
+              exit 1
+            fi
+          done
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/apple-certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/apple-signing-validation.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+
+          if [ ! -s "$CERTIFICATE_PATH" ]; then
+            echo "::error::APPLE_CERTIFICATE did not decode to a certificate file. Store the base64 text of the exported .p12 file."
+            exit 1
+          fi
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          if ! security import "$CERTIFICATE_PATH" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign >/dev/null 2>&1
+          then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+            rm -f "$CERTIFICATE_PATH"
+            echo "::error::APPLE_CERTIFICATE is not a valid .p12 file, or APPLE_CERTIFICATE_PASSWORD does not match its export password."
+            exit 1
+          fi
+
+          if ! security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -Fq "$APPLE_SIGNING_IDENTITY"; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+            rm -f "$CERTIFICATE_PATH"
+            echo "::error::APPLE_SIGNING_IDENTITY does not match a code-signing identity inside APPLE_CERTIFICATE."
+            exit 1
+          fi
+
+          security delete-keychain "$KEYCHAIN_PATH"
+          rm -f "$CERTIFICATE_PATH"
+          echo "Apple signing certificate is valid."
+
+      - name: Build signed and notarized macOS bundle
+        if: runner.os == 'macOS' && vars.ENABLE_APPLE_SIGNING == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
+
+      - name: Build ad-hoc signed macOS bundle
+        if: runner.os == 'macOS' && vars.ENABLE_APPLE_SIGNING != 'true'
+        env:
+          APPLE_SIGNING_IDENTITY: "-"
+        run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
+
+      - name: Build Tauri bundles
+        if: runner.os != 'macOS'
         run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
 
       - name: Generate SHA-256 checksums
