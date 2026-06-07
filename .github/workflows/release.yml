@@ -201,10 +201,43 @@ jobs:
 
       - name: Generate SHA-256 checksums
         shell: bash
+        env:
+          CHECKSUM_FILE: checksums-${{ matrix.platform.name }}.txt
         run: |
-          find src-tauri/target/release/bundle -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" \) -print0 \
-            | sort -z \
-            | xargs -0 sha256sum > "checksums-${{ matrix.platform.name }}.txt"
+          node <<'NODE'
+          const crypto = require("node:crypto");
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          const bundleDirectory = path.resolve("src-tauri/target/release/bundle");
+          const checksumFile = process.env.CHECKSUM_FILE;
+          const installerExtensions = new Set([".msi", ".exe", ".dmg", ".deb", ".appimage"]);
+
+          function collectInstallers(directory) {
+            return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+              const entryPath = path.join(directory, entry.name);
+              if (entry.isDirectory()) return collectInstallers(entryPath);
+              return installerExtensions.has(path.extname(entry.name).toLowerCase()) ? [entryPath] : [];
+            });
+          }
+
+          if (!fs.existsSync(bundleDirectory)) {
+            throw new Error(`Bundle directory not found: ${bundleDirectory}`);
+          }
+
+          const installers = collectInstallers(bundleDirectory).sort();
+          if (installers.length === 0) {
+            throw new Error(`No installers found in ${bundleDirectory}`);
+          }
+
+          const checksums = installers.map((installerPath) => {
+            const hash = crypto.createHash("sha256").update(fs.readFileSync(installerPath)).digest("hex");
+            return `${hash}  ${path.basename(installerPath)}`;
+          });
+
+          fs.writeFileSync(checksumFile, `${checksums.join("\n")}\n`);
+          console.log(`Generated ${checksumFile} for ${installers.length} installer(s).`);
+          NODE
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4

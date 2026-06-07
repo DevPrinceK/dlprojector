@@ -16,7 +16,6 @@ import {
   MonitorUp,
   Music2,
   Phone,
-  Radio,
   ShieldCheck,
   Sparkles,
   Users,
@@ -215,35 +214,27 @@ export function MarketingSite() {
           </div>
 
           <div className="site-container workflow-stage">
-            <div className="workflow-visual">
-              <div className="visual-topbar">
-                <span className="visual-brand"><img src="/dlprojector-icon.ico" alt="" /> DL Projector</span>
-                <span className="connected"><i /> Projector connected</span>
-              </div>
-              <div className="visual-body">
-                <div className="visual-preview">
-                  <span>PREVIEW</span>
-                  <div>
-                    <small>John 3:16</small>
-                    <strong>For God so loved the world...</strong>
-                  </div>
-                </div>
-                <div className="take-control"><Sparkles size={16} /> TAKE LIVE</div>
-                <div className="visual-live">
-                  <span><i /> LIVE</span>
-                  <div>
-                    <small>Welcome / Logo</small>
-                    <strong>Sunday Worship Service</strong>
-                  </div>
-                </div>
-              </div>
-              <div className="visual-rail">
-                {["Welcome", "Opening prayer", "Hymn", "Scripture", "Message"].map((item, index) => (
-                  <span key={item} className={index === 1 ? "selected" : index === 0 ? "live" : ""}>
-                    <i /> {item}
-                  </span>
-                ))}
-              </div>
+            <div className="real-workflow-visual">
+              <figure className="operator-image">
+                <img
+                  src="/screenshots/control-console.png"
+                  alt="DL Projector operator console with separate amber Preview and green Live panels"
+                  width="1920"
+                  height="1034"
+                  loading="lazy"
+                />
+                <figcaption><MonitorUp size={15} /> Operator console</figcaption>
+              </figure>
+              <figure className="output-image">
+                <img
+                  src="/screenshots/projection-screen.jpg"
+                  alt="Opening Prayer displayed on the congregation projection screen"
+                  width="1279"
+                  height="723"
+                  loading="lazy"
+                />
+                <figcaption><Sparkles size={15} /> Congregation output</figcaption>
+              </figure>
             </div>
 
             <div className="workflow-copy">
@@ -418,7 +409,7 @@ export function MarketingSite() {
         </div>
         <div className="site-container footer-bottom">
           <span>© 2026 PKay Software Consultancy. All rights reserved.</span>
-          <span>DL Projector v0.1.5</span>
+          <span>DL Projector v0.1.6</span>
         </div>
       </footer>
     </div>
@@ -427,42 +418,19 @@ export function MarketingSite() {
 
 function ConsoleShowcase() {
   return (
-    <div className="console-showcase" aria-label="DL Projector control console preview">
-      <div className="console-window">
-        <div className="console-titlebar">
-          <span><img src="/dlprojector-icon.ico" alt="" /> DL Projector Control</span>
-          <div><i /><i /><i /></div>
+    <div className="console-showcase" aria-label="Actual DL Projector control console">
+      <div className="screenshot-frame">
+        <div className="screenshot-accent">
+          <span><i /> Actual product interface</span>
+          <span>Preview · Live · Service rail</span>
         </div>
-        <div className="console-toolbar">
-          <strong>Sunday Worship Service</strong>
-          <span><i /> Projector Connected</span>
-        </div>
-        <div className="console-decks">
-          <div className="mini-deck preview">
-            <label>PREVIEW</label>
-            <div className="mini-slide">
-              <small>Romans 8:28</small>
-              <strong>All things work together for good.</strong>
-              <span>KJV</span>
-            </div>
-          </div>
-          <div className="mini-deck live">
-            <label><i /> LIVE</label>
-            <div className="mini-slide">
-              <small>Welcome</small>
-              <strong>DLCF Legon</strong>
-              <span>Sunday Worship Service</span>
-            </div>
-          </div>
-        </div>
-        <button className="mock-take" type="button"><Radio size={14} /> TAKE LIVE</button>
-        <div className="mock-timeline">
-          {["Welcome", "Prayer", "Hymn 12", "Scripture", "Message"].map((item, index) => (
-            <div key={item} className={index === 0 ? "live" : index === 1 ? "staged" : ""}>
-              <i /><strong>{item}</strong><span>{index === 0 ? "Live" : index === 1 ? "Staged" : "Ready"}</span>
-            </div>
-          ))}
-        </div>
+        <img
+          src="/screenshots/control-console.png"
+          alt="DL Projector control console showing a staged scripture, live opening prayer, safety controls, and Monday Bible Studies service rail"
+          width="1920"
+          height="1034"
+          fetchPriority="high"
+        />
       </div>
       <div className="console-caption">
         <span><i /> Live output protected</span>
