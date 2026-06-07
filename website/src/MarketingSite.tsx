@@ -409,7 +409,7 @@ export function MarketingSite() {
         </div>
         <div className="site-container footer-bottom">
           <span>© 2026 PKay Software Consultancy. All rights reserved.</span>
-          <span>DL Projector v0.1.6</span>
+          <span>DL Projector v0.1.7</span>
         </div>
       </footer>
     </div>

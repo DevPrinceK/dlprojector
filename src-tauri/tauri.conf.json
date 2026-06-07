@@ -52,9 +52,23 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "DLCF Legon",
+    "publisher": "PKay Software Consultancy",
     "category": "Utility",
     "shortDescription": "Offline church projection software",
-    "longDescription": "DLCF Legon Projection Software for scriptures, hymns, announcements, and service programs."
+    "longDescription": "Professional offline-first church projection software for scriptures, hymns, announcements, media, and service programs.",
+    "windows": {
+      "allowDowngrades": false,
+      "nsis": {
+        "headerImage": "installer-assets/header.bmp",
+        "sidebarImage": "installer-assets/sidebar.bmp",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "uninstallerHeaderImage": "installer-assets/header.bmp",
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "compression": "lzma",
+        "startMenuFolder": "PKay Software Consultancy"
+      }
+    }
   }
 }
