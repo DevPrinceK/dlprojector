@@ -1,317 +1,473 @@
+import { useState } from "react";
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  Gauge,
+  HardDrive,
+  Headphones,
+  Image,
+  Laptop,
+  Mail,
+  Menu,
+  MonitorUp,
+  Music2,
+  Phone,
+  Radio,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  X
+} from "lucide-react";
+
 const releaseUrl = "https://github.com/DevPrinceK/dlprojector/releases/latest";
 
-const downloadOptions = [
+const productFeatures = [
   {
-    platform: "Windows",
-    format: "MSI installer and portable EXE",
-    detail: "Recommended for most church media PCs and projection laptops.",
-    badge: "Available"
+    icon: BookOpen,
+    title: "Scripture at service speed",
+    body: "Search references, switch installed Bible versions, preview a verse, and project it without breaking the service flow."
   },
   {
-    platform: "macOS",
-    format: "Universal DMG",
-    detail: "Prepared for Apple Silicon and Intel Macs used by media teams.",
-    badge: "Available"
+    icon: Music2,
+    title: "Hymns that stay readable",
+    body: "Search GHS locally, stage the right stanza, and use gradual auto-scrolling for lyrics that run beyond one screen."
   },
   {
-    platform: "Linux",
-    format: "AppImage and DEB",
-    detail: "For churches running Ubuntu, Debian, Mint, or portable Linux setups.",
-    badge: "Available"
+    icon: Gauge,
+    title: "A real production console",
+    body: "Keep Preview and Live unmistakably separate, follow the service rail, and recover quickly with dedicated safety controls."
+  },
+  {
+    icon: Users,
+    title: "Plan recurring services",
+    body: "Create Sunday worship, Bible study, and special-event programs once, then duplicate and adapt them as reusable templates."
+  },
+  {
+    icon: Image,
+    title: "Local media, ready offline",
+    body: "Bring in images from the computer or the web and keep them stored locally for dependable projection without internet."
+  },
+  {
+    icon: ShieldCheck,
+    title: "Built for reliability",
+    body: "Automatic backups, restore tools, local SQLite storage, and projector-safe controls protect the moments that matter."
   }
 ];
 
-const features = [
-  "Scripture projection with version switching",
-  "GHS hymn library with live search",
-  "Service program rails for recurring services",
-  "Dual-screen control and projection windows",
-  "Logo, blank screen, and emergency reset controls",
-  "Offline-first local church media workflow"
+const platforms = [
+  {
+    name: "Windows",
+    label: "Recommended",
+    format: "MSI + NSIS installer",
+    detail: "Windows 10 or later",
+    tone: "gold"
+  },
+  {
+    name: "macOS",
+    label: "Available",
+    format: "Universal DMG",
+    detail: "Apple Silicon and Intel",
+    tone: "blue"
+  },
+  {
+    name: "Linux",
+    label: "Available",
+    format: "AppImage + DEB",
+    detail: "Ubuntu, Debian, Mint and more",
+    tone: "green"
+  }
 ];
 
-const workflow = [
+const workflows = [
   {
-    step: "01",
-    title: "Prepare before service",
-    body: "Build Sunday Worship Service, Bible Study, or special programs with scriptures, hymns, announcements, media, and people highlights."
+    number: "01",
+    title: "Prepare the service",
+    body: "Build a reusable program with scriptures, hymns, announcements, media, and custom moments."
   },
   {
-    step: "02",
-    title: "Stage with confidence",
-    body: "Preview every item before it goes live, keep the selected service visible, and avoid guessing what the congregation will see."
+    number: "02",
+    title: "Stage in Preview",
+    body: "Select the next item, check exactly what the congregation will see, and keep Live safely untouched."
   },
   {
-    step: "03",
-    title: "Project calmly",
-    body: "Take items live, blank the screen, show the church logo, or recover quickly with projection-safe controls built for real services."
+    number: "03",
+    title: "Take it Live",
+    body: "Project with one decisive action, follow the active service item, and retain immediate blank and reset controls."
   }
 ];
 
 const faqs = [
   {
     question: "Does DL Projector require internet during service?",
-    answer:
-      "No. The app is designed around local data and offline projection so the media team is not dependent on church internet."
+    answer: "No. Core projection, scriptures, hymns, services, and saved media are designed to work locally and offline."
   },
   {
-    question: "Can we use it for recurring services?",
-    answer:
-      "Yes. Services such as Sunday Worship Service or Monday Bible Study can be created, selected, edited, and reused."
+    question: "Can our church reuse recurring service programs?",
+    answer: "Yes. Create recurring programs such as Sunday Worship Service or Monday Bible Study, then duplicate, edit, reorder, or archive them."
   },
   {
-    question: "Which Bible and hymn content is planned?",
-    answer:
-      "The app starts with KJV scripture support and GHS hymns, with room for additional English Bible versions and MHS support later."
+    question: "Which Bible and hymn libraries are supported?",
+    answer: "KJV and GHS are available, alongside downloadable English Bible versions. The library structure is ready for additions such as MHS."
   },
   {
-    question: "Who should we contact for setup or support?",
-    answer:
-      "PKay Software Consultancy can help with installation, training, church-specific setup, and support."
+    question: "Can PKay Software Consultancy help us get started?",
+    answer: "Yes. Installation guidance, operator training, projector setup, and church-specific support are available through the contact details below."
   }
 ];
 
 export function MarketingSite() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <main className="site-shell">
-      <header className="topbar">
-        <a className="brand-lockup" href="#top" aria-label="DL Projector home">
-          <span className="brand-mark">
-            <img src="/dlprojector-icon.ico" alt="" aria-hidden="true" />
-          </span>
-          <span>
-            <strong>DL Projector</strong>
-            <small>Church projection software</small>
-          </span>
-        </a>
-        <nav className="topnav" aria-label="Primary navigation">
-          <a href="#features">Features</a>
-          <a href="#downloads">Downloads</a>
-          <a href="#workflow">Workflow</a>
-          <a href="#contact">Contact</a>
-        </nav>
-        <a className="nav-cta" href="#downloads">
-          Download
-        </a>
+    <div className="site-shell">
+      <header className="site-header">
+        <div className="header-inner">
+          <a className="brand" href="#top" aria-label="DL Projector home">
+            <img src="/dlprojector-icon.ico" alt="" />
+            <span className="brand-copy">
+              <strong>DL Projector</strong>
+              <small>Church presentation software</small>
+            </span>
+          </a>
+
+          <nav className={`primary-nav ${menuOpen ? "is-open" : ""}`} aria-label="Primary navigation">
+            <a href="#product" onClick={() => setMenuOpen(false)}>Product</a>
+            <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+            <a href="#downloads" onClick={() => setMenuOpen(false)}>Downloads</a>
+            <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
+            <a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a>
+          </nav>
+
+          <div className="header-actions">
+            <a className="header-download" href="#downloads">
+              Download app
+              <ArrowRight size={16} />
+            </a>
+            <button
+              className="menu-button"
+              type="button"
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <X size={21} /> : <Menu size={21} />}
+            </button>
+          </div>
+        </div>
       </header>
 
-      <section id="top" className="hero-section">
-        <div className="hero-copy">
-          <p className="eyebrow">Built for live church service</p>
-          <h1>Projection software that keeps the media desk calm.</h1>
-          <p className="hero-lede">
-            DL Projector helps churches prepare scriptures, hymns, announcements, media,
-            personalities, and service programs in one offline-first operator dashboard.
-          </p>
-          <div className="hero-actions">
-            <a className="primary-button" href={releaseUrl} target="_blank" rel="noreferrer">
-              Get latest release
-            </a>
-            <a className="secondary-button" href="#contact">
-              Ask for setup help
-            </a>
-          </div>
-          <div className="hero-proof" aria-label="Product strengths">
-            <span>Offline-first</span>
-            <span>Dual screen</span>
-            <span>Scriptures and hymns</span>
-          </div>
-        </div>
-
-        <div className="hero-visual" aria-label="DL Projector interface preview">
-          <div className="projection-card">
-            <div className="window-dots" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className="preview-stage">
-              <span className="stage-pill">Live Preview</span>
-              <h2>Romans 8:28</h2>
+      <main>
+        <section id="top" className="hero">
+          <div className="hero-grid site-container">
+            <div className="hero-copy">
+              <div className="kicker"><span /> Built for the live church environment</div>
+              <h1>Run every service with clarity and confidence.</h1>
               <p>
-                And we know that all things work together for good to them that love God,
-                to them who are the called according to his purpose.
+                One calm workspace for scriptures, hymns, announcements, media, and the full
+                order of service. Built offline-first for church projection teams.
               </p>
-            </div>
-            <div className="control-strip">
-              <span>Scripture</span>
-              <span>Hymn</span>
-              <span>Blank</span>
-              <span>Logo</span>
-            </div>
-          </div>
-          <div className="floating-note">
-            <strong>Sunday Worship Service</strong>
-            <span>Ready for live projection</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="section-panel">
-        <div className="section-heading">
-          <p className="eyebrow">Why churches use it</p>
-          <h2>Everything the projection team needs, without the panic.</h2>
-        </div>
-        <div className="feature-grid">
-          {features.map((feature) => (
-            <article className="feature-card" key={feature}>
-              <span className="feature-icon">+</span>
-              <h3>{feature}</h3>
-              <p>
-                Designed for quick preparation, readable projection, and fewer service-time
-                surprises.
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="downloads" className="downloads-section">
-        <div className="section-heading centered">
-          <p className="eyebrow">Download options</p>
-          <h2>Choose the version for your projection computer.</h2>
-          <p>
-            Installers are distributed from GitHub Releases so churches can always find the
-            latest published build in one trusted location.
-          </p>
-        </div>
-        <div className="download-grid">
-          {downloadOptions.map((option) => (
-            <article className="download-card" key={option.platform}>
-              <div className="download-card-top">
-                <span>{option.badge}</span>
-                <h3>{option.platform}</h3>
+              <div className="hero-actions">
+                <a className="button button-primary" href="#downloads">
+                  <Download size={18} />
+                  Download DL Projector
+                </a>
+                <a className="button button-secondary" href="#product">
+                  See how it works
+                  <ArrowRight size={17} />
+                </a>
               </div>
-              <p className="format">{option.format}</p>
-              <p>{option.detail}</p>
-              <a href={releaseUrl} target="_blank" rel="noreferrer">
-                Download from GitHub
-              </a>
-            </article>
-          ))}
-        </div>
-      </section>
+              <div className="hero-trust">
+                <span><Check size={15} /> Free to download</span>
+                <span><Check size={15} /> Works offline</span>
+                <span><Check size={15} /> Windows, macOS, Linux</span>
+              </div>
+            </div>
 
-      <section id="workflow" className="workflow-section">
-        <div className="section-heading">
-          <p className="eyebrow">Service flow</p>
-          <h2>From preparation to projection in three clear moves.</h2>
-        </div>
-        <div className="timeline">
-          {workflow.map((item) => (
-            <article className="timeline-card" key={item.step}>
-              <span>{item.step}</span>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+            <ConsoleShowcase />
+          </div>
+          <div className="hero-rule" />
+        </section>
 
-      <section className="library-section">
-        <div>
-          <p className="eyebrow">Libraries included</p>
-          <h2>Scripture and hymns are treated like first-class service items.</h2>
-          <p>
-            Start with KJV scriptures and GHS hymns, then expand as more approved English Bible
-            versions and hymn collections are packaged for download.
-          </p>
-        </div>
-        <div className="library-list">
-          <span>KJV Bible import</span>
-          <span>GHS hymn search</span>
-          <span>Future Bible downloads</span>
-          <span>MHS-ready roadmap</span>
-        </div>
-      </section>
+        <section className="trust-strip">
+          <div className="site-container trust-grid">
+            <div><HardDrive /><strong>Offline-first</strong><span>No service-day internet dependency</span></div>
+            <div><MonitorUp /><strong>Dual-display</strong><span>Separate control and projection screens</span></div>
+            <div><ShieldCheck /><strong>Projection-safe</strong><span>Preview, Live, blank, and recovery controls</span></div>
+            <div><Headphones /><strong>Human support</strong><span>Setup help from PKay Consultancy</span></div>
+          </div>
+        </section>
 
-      <section className="faq-section">
-        <div className="section-heading centered">
-          <p className="eyebrow">Questions</p>
-          <h2>Built with church realities in mind.</h2>
-        </div>
-        <div className="faq-grid">
-          {faqs.map((faq) => (
-            <article className="faq-card" key={faq.question}>
-              <h3>{faq.question}</h3>
-              <p>{faq.answer}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="contact" className="contact-section">
-        <div className="contact-copy">
-          <p className="eyebrow">Contact us</p>
-          <h2>Need installation help, training, or a church-specific setup?</h2>
-          <p>
-            There is no backend contact form yet, so please reach PKay Software Consultancy
-            directly using the phone numbers or email addresses below.
-          </p>
-        </div>
-        <div className="contact-grid">
-          <a href="tel:+233558366133">+233 55 836 6133</a>
-          <a href="tel:+233505757031">+233 50 575 7031</a>
-          <a href="mailto:princesamuelpks@gmail.com">princesamuelpks@gmail.com</a>
-          <a href="mailto:pkaysoftwareconsultancy@gmail.com">
-            pkaysoftwareconsultancy@gmail.com
-          </a>
-        </div>
-      </section>
-
-      <footer className="site-footer">
-        <div className="footer-brand">
-          <span className="brand-mark">
-            <img src="/dlprojector-icon.ico" alt="" aria-hidden="true" />
-          </span>
-          <div>
-            <h2>DL Projector</h2>
-            <p>
-              Professional church projection software credited to PKay Software Consultancy.
+        <section id="product" className="section product-section">
+          <div className="site-container split-heading">
+            <div>
+              <p className="section-label">The product</p>
+              <h2>Designed around what happens at the media desk.</h2>
+            </div>
+            <p className="section-intro">
+              DL Projector is not a collection of disconnected presentation tools. It is one
+              deliberate workflow from preparation to projection, built for volunteers and
+              media teams operating under real-time pressure.
             </p>
           </div>
-        </div>
-        <div className="footer-columns">
-          <div>
-            <h3>Product</h3>
-            <a href="#features">Features</a>
-            <a href="#workflow">Service workflow</a>
-            <a href="#downloads">Downloads</a>
-            <a href={releaseUrl} target="_blank" rel="noreferrer">
-              Release notes
-            </a>
+
+          <div className="site-container workflow-stage">
+            <div className="workflow-visual">
+              <div className="visual-topbar">
+                <span className="visual-brand"><img src="/dlprojector-icon.ico" alt="" /> DL Projector</span>
+                <span className="connected"><i /> Projector connected</span>
+              </div>
+              <div className="visual-body">
+                <div className="visual-preview">
+                  <span>PREVIEW</span>
+                  <div>
+                    <small>John 3:16</small>
+                    <strong>For God so loved the world...</strong>
+                  </div>
+                </div>
+                <div className="take-control"><Sparkles size={16} /> TAKE LIVE</div>
+                <div className="visual-live">
+                  <span><i /> LIVE</span>
+                  <div>
+                    <small>Welcome / Logo</small>
+                    <strong>Sunday Worship Service</strong>
+                  </div>
+                </div>
+              </div>
+              <div className="visual-rail">
+                {["Welcome", "Opening prayer", "Hymn", "Scripture", "Message"].map((item, index) => (
+                  <span key={item} className={index === 1 ? "selected" : index === 0 ? "live" : ""}>
+                    <i /> {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="workflow-copy">
+              {workflows.map((item) => (
+                <article key={item.number}>
+                  <span>{item.number}</span>
+                  <div>
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
-          <div>
+        </section>
+
+        <section id="features" className="section features-section">
+          <div className="site-container centered-heading">
+            <p className="section-label">Everything in one place</p>
+            <h2>Purpose-built tools for a smoother service.</h2>
+            <p>No browser tabs, improvised documents, or last-minute file hunting.</p>
+          </div>
+          <div className="site-container feature-grid">
+            {productFeatures.map(({ icon: Icon, title, body }, index) => (
+              <article className="feature-card" key={title}>
+                <div className="feature-number">0{index + 1}</div>
+                <div className="feature-icon"><Icon size={21} /></div>
+                <h3>{title}</h3>
+                <p>{body}</p>
+                <span className="feature-line" />
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="library-banner">
+          <div className="site-container library-grid">
+            <div>
+              <p className="section-label light">Content libraries</p>
+              <h2>Scripture and hymns, ready before the opening prayer.</h2>
+              <p>
+                Install supported English Bible versions, search the complete GHS collection,
+                and keep every library available locally when the internet is not.
+              </p>
+              <a href="#downloads">Explore the desktop app <ArrowRight size={17} /></a>
+            </div>
+            <div className="library-stack">
+              <div className="library-card bible-card">
+                <BookOpen size={22} />
+                <span><small>Bible library</small><strong>KJV + downloadable versions</strong></span>
+                <ChevronRight size={18} />
+              </div>
+              <div className="library-card hymn-card">
+                <Music2 size={22} />
+                <span><small>Hymn library</small><strong>260 GHS hymns and counting</strong></span>
+                <ChevronRight size={18} />
+              </div>
+              <div className="library-card media-card">
+                <Image size={22} />
+                <span><small>Church media</small><strong>Local and internet image sources</strong></span>
+                <ChevronRight size={18} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="downloads" className="section downloads-section">
+          <div className="site-container download-heading">
+            <div>
+              <p className="section-label">Download</p>
+              <h2>Install DL Projector on your media computer.</h2>
+            </div>
+            <div className="release-note">
+              <span>Latest stable release</span>
+              <strong>Version 0.1.4</strong>
+              <a href={releaseUrl} target="_blank" rel="noreferrer">
+                View release notes <ExternalLink size={14} />
+              </a>
+            </div>
+          </div>
+          <div className="site-container download-grid">
+            {platforms.map((platform) => (
+              <article className={`download-card ${platform.tone}`} key={platform.name}>
+                <div className="platform-icon"><Laptop size={25} /></div>
+                <span className="availability">{platform.label}</span>
+                <h3>{platform.name}</h3>
+                <p>{platform.format}</p>
+                <small>{platform.detail}</small>
+                <a href={releaseUrl} target="_blank" rel="noreferrer">
+                  <Download size={17} />
+                  Download for {platform.name}
+                </a>
+              </article>
+            ))}
+          </div>
+          <div className="site-container download-footnote">
+            <ShieldCheck size={18} />
+            <span>Installers are produced automatically from the official source and published with SHA-256 checksums.</span>
+          </div>
+        </section>
+
+        <section id="faq" className="section faq-section">
+          <div className="site-container faq-layout">
+            <div className="faq-heading">
+              <p className="section-label">Questions</p>
+              <h2>Practical answers for church teams.</h2>
+              <p>Still deciding whether DL Projector fits your setup?</p>
+              <a href="#contact">Talk to us <ArrowRight size={16} /></a>
+            </div>
+            <div className="faq-list">
+              {faqs.map((faq, index) => (
+                <details key={faq.question} open={index === 0}>
+                  <summary>{faq.question}<span>+</span></summary>
+                  <p>{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="contact-section">
+          <div className="site-container contact-panel">
+            <div>
+              <p className="section-label light">Support and setup</p>
+              <h2>Bring a calmer projection workflow to your church.</h2>
+              <p>
+                Contact PKay Software Consultancy for installation guidance, operator
+                training, or help configuring your church&apos;s projection environment.
+              </p>
+            </div>
+            <div className="contact-links">
+              <a href="tel:+233558366133"><Phone size={18} /><span><small>Call or WhatsApp</small>+233 55 836 6133</span></a>
+              <a href="tel:+233505757031"><Phone size={18} /><span><small>Alternate number</small>+233 50 575 7031</span></a>
+              <a href="mailto:princesamuelpks@gmail.com"><Mail size={18} /><span><small>Primary email</small>princesamuelpks@gmail.com</span></a>
+              <a href="mailto:pkaysoftwareconsultancy@gmail.com"><Mail size={18} /><span><small>Business email</small>pkaysoftwareconsultancy@gmail.com</span></a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="site-footer">
+        <div className="site-container footer-main">
+          <div className="footer-summary">
+            <a className="brand footer-brand" href="#top">
+              <img src="/dlprojector-icon.ico" alt="" />
+              <span className="brand-copy"><strong>DL Projector</strong><small>Church presentation software</small></span>
+            </a>
+            <p>Dependable, offline-first projection software for churches and live worship environments.</p>
+            <span className="footer-credit">A product of <strong>PKay Software Consultancy</strong></span>
+          </div>
+          <div className="footer-column">
+            <h3>Product</h3>
+            <a href="#product">How it works</a>
+            <a href="#features">Features</a>
+            <a href="#downloads">Downloads</a>
+            <a href={releaseUrl} target="_blank" rel="noreferrer">Release notes</a>
+          </div>
+          <div className="footer-column">
             <h3>Platforms</h3>
-            <a href={releaseUrl} target="_blank" rel="noreferrer">
-              Windows
-            </a>
-            <a href={releaseUrl} target="_blank" rel="noreferrer">
-              macOS
-            </a>
-            <a href={releaseUrl} target="_blank" rel="noreferrer">
-              Linux
-            </a>
+            <a href="#downloads">Windows</a>
+            <a href="#downloads">macOS</a>
+            <a href="#downloads">Linux</a>
             <a href="#contact">Installation support</a>
           </div>
-          <div>
+          <div className="footer-column">
             <h3>Support</h3>
+            <a href="#faq">Frequently asked questions</a>
             <a href="tel:+233558366133">+233 55 836 6133</a>
-            <a href="tel:+233505757031">+233 50 575 7031</a>
-            <a href="mailto:princesamuelpks@gmail.com">Primary email</a>
-            <a href="mailto:pkaysoftwareconsultancy@gmail.com">Consultancy email</a>
-          </div>
-          <div>
-            <h3>Credits</h3>
-            <p>Software by PKay Software Consultancy.</p>
-            <p>Built for churches, media teams, and live worship projection!</p>
+            <a href="mailto:pkaysoftwareconsultancy@gmail.com">Email consultancy</a>
+            <a href="https://github.com/DevPrinceK/dlprojector" target="_blank" rel="noreferrer">Source repository</a>
           </div>
         </div>
-        <div className="footer-bottom">
-          <span>(c) 2026 PKay Software Consultancy. All rights reserved.</span>
+        <div className="site-container footer-bottom">
+          <span>© 2026 PKay Software Consultancy. All rights reserved.</span>
           <span>DL Projector v0.1.4</span>
         </div>
       </footer>
-    </main>
+    </div>
+  );
+}
+
+function ConsoleShowcase() {
+  return (
+    <div className="console-showcase" aria-label="DL Projector control console preview">
+      <div className="console-window">
+        <div className="console-titlebar">
+          <span><img src="/dlprojector-icon.ico" alt="" /> DL Projector Control</span>
+          <div><i /><i /><i /></div>
+        </div>
+        <div className="console-toolbar">
+          <strong>Sunday Worship Service</strong>
+          <span><i /> Projector Connected</span>
+        </div>
+        <div className="console-decks">
+          <div className="mini-deck preview">
+            <label>PREVIEW</label>
+            <div className="mini-slide">
+              <small>Romans 8:28</small>
+              <strong>All things work together for good.</strong>
+              <span>KJV</span>
+            </div>
+          </div>
+          <div className="mini-deck live">
+            <label><i /> LIVE</label>
+            <div className="mini-slide">
+              <small>Welcome</small>
+              <strong>DLCF Legon</strong>
+              <span>Sunday Worship Service</span>
+            </div>
+          </div>
+        </div>
+        <button className="mock-take" type="button"><Radio size={14} /> TAKE LIVE</button>
+        <div className="mock-timeline">
+          {["Welcome", "Prayer", "Hymn 12", "Scripture", "Message"].map((item, index) => (
+            <div key={item} className={index === 0 ? "live" : index === 1 ? "staged" : ""}>
+              <i /><strong>{item}</strong><span>{index === 0 ? "Live" : index === 1 ? "Staged" : "Ready"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="console-caption">
+        <span><i /> Live output protected</span>
+        <strong>Preview first. Project with confidence.</strong>
+      </div>
+    </div>
   );
 }
