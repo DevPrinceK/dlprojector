@@ -41,9 +41,8 @@ pub fn get_current_projection_content(
     state: State<'_, AppState>,
 ) -> AppResult<Option<ProjectionContent>> {
     let conn = state.conn()?;
-    let mut statement = conn.prepare(
-        "SELECT value FROM app_settings WHERE key = 'projection.lastContent' LIMIT 1",
-    )?;
+    let mut statement = conn
+        .prepare("SELECT value FROM app_settings WHERE key = 'projection.lastContent' LIMIT 1")?;
     let mut rows = statement.query([])?;
 
     if let Some(row) = rows.next()? {
@@ -56,7 +55,10 @@ pub fn get_current_projection_content(
 }
 
 #[tauri::command]
-pub fn record_projection_history(state: State<'_, AppState>, content: ProjectionContent) -> AppResult<()> {
+pub fn record_projection_history(
+    state: State<'_, AppState>,
+    content: ProjectionContent,
+) -> AppResult<()> {
     let snapshot = serde_json::to_string(&content)?;
     let conn = state.conn()?;
     conn.execute(

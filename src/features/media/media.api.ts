@@ -23,3 +23,18 @@ export async function importMediaUrl(url: string) {
     throw new Error("Media import is available in the desktop app.");
   });
 }
+
+export async function deleteMediaAsset(id: number) {
+  return tryInvokeCommand<void>("delete_media_asset", { id }, () => undefined);
+}
+
+export async function materializeImage(value: string, name: string) {
+  if (!value) return value;
+  if (value.startsWith("data:image/")) {
+    return (await importMediaDataUrl(name, value)).filePath;
+  }
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return (await importMediaUrl(value)).filePath;
+  }
+  return value;
+}

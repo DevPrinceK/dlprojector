@@ -96,5 +96,13 @@ CREATE TABLE IF NOT EXISTS media_assets (
 INSERT OR IGNORE INTO app_settings(key, value) VALUES
   ('projection.fontSize', '72'),
   ('projection.transition', 'fade'),
+  ('projection.background', 'navy'),
+  ('projection.showScriptureVersion', 'true'),
+  ('projection.showHymnTitle', 'true'),
+  ('hymn.scrollSecondsPerLine', '4.2'),
+  ('shortcut.next', 'Space'),
+  ('shortcut.blank', 'b'),
+  ('shortcut.logo', 'l'),
   ('backup.autoEnabled', 'true'),
-  ('scripture.version', 'KJV');
+  ('scripture.version', 'KJV'),
+  ('loader.text', 'DLCF Legon');

@@ -6,7 +6,10 @@ use crate::error::{AppError, AppResult};
 use crate::models::personality::{Personality, PersonalityInput};
 
 #[tauri::command]
-pub fn create_personality(state: State<'_, AppState>, input: PersonalityInput) -> AppResult<Personality> {
+pub fn create_personality(
+    state: State<'_, AppState>,
+    input: PersonalityInput,
+) -> AppResult<Personality> {
     validate_personality(&input)?;
     let conn = state.conn()?;
     conn.execute(
@@ -28,7 +31,11 @@ pub fn create_personality(state: State<'_, AppState>, input: PersonalityInput) -
 }
 
 #[tauri::command]
-pub fn update_personality(state: State<'_, AppState>, id: i64, input: PersonalityInput) -> AppResult<Personality> {
+pub fn update_personality(
+    state: State<'_, AppState>,
+    id: i64,
+    input: PersonalityInput,
+) -> AppResult<Personality> {
     validate_personality(&input)?;
     let conn = state.conn()?;
     conn.execute(
@@ -49,7 +56,8 @@ pub fn update_personality(state: State<'_, AppState>, id: i64, input: Personalit
             id
         ],
     )?;
-    get_personality_by_id(&conn, id)?.ok_or_else(|| AppError::Message("Profile not found.".to_string()))
+    get_personality_by_id(&conn, id)?
+        .ok_or_else(|| AppError::Message("Profile not found.".to_string()))
 }
 
 #[tauri::command]

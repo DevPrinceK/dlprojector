@@ -64,6 +64,6 @@ export async function showBlank() {
   await emitProjectionContent(BLANK_CONTENT);
 }
 
-export async function showLoader() {
-  await emitProjectionContent(LOADER_CONTENT);
+export async function showLoader(title = LOADER_CONTENT.title) {
+  await emitProjectionContent({ ...LOADER_CONTENT, title });
 }

@@ -11,6 +11,7 @@ use tauri::Manager;
 
 pub fn run() -> Result<(), AppError> {
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let state = AppState::initialize(app.handle())?;
@@ -52,6 +53,7 @@ pub fn run() -> Result<(), AppError> {
             commands::service_programs::update_service_program,
             commands::service_programs::delete_service_program,
             commands::service_programs::list_service_programs,
+            commands::service_programs::duplicate_service_program,
             commands::service_programs::add_service_item,
             commands::service_programs::update_service_item,
             commands::service_programs::delete_service_item,
@@ -69,7 +71,58 @@ pub fn run() -> Result<(), AppError> {
             commands::settings::save_setting
         ]);
 
-    builder
-        .run(tauri::generate_context!())
-        .map_err(|error| AppError::Tauri(error.to_string()))
+    let app = builder
+        .build(tauri::generate_context!())
+        .map_err(|error| AppError::Tauri(error.to_string()))?;
+
+    app.run(|app_handle, event| {
+        match event {
+            tauri::RunEvent::ExitRequested { .. } => {
+                let state = app_handle.state::<AppState>();
+                let auto_enabled = state
+                    .conn()
+                    .ok()
+                    .and_then(|conn| {
+                        conn.query_row(
+                            "SELECT value FROM app_settings WHERE key = 'backup.autoEnabled'",
+                            [],
+                            |row| row.get::<_, String>(0),
+                        )
+                        .ok()
+                    })
+                    .map(|value| value != "false")
+                    .unwrap_or(true);
+                if auto_enabled {
+                    let _ = commands::backup::create_auto_backup_from_state(state.inner());
+                }
+            }
+            tauri::RunEvent::WindowEvent { label, event, .. } if label == "projection" => {
+                let state = app_handle.state::<AppState>();
+                if let Ok(conn) = state.conn() {
+                    match event {
+                        tauri::WindowEvent::Moved(position) => {
+                            let value = format!("{},{}", position.x, position.y);
+                            let _ = conn.execute(
+                                "INSERT INTO app_settings(key, value) VALUES ('projection.windowPosition', ?1)
+                                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')",
+                                [value],
+                            );
+                        }
+                        tauri::WindowEvent::Resized(size) => {
+                            let value = format!("{},{}", size.width, size.height);
+                            let _ = conn.execute(
+                                "INSERT INTO app_settings(key, value) VALUES ('projection.windowSize', ?1)
+                                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')",
+                                [value],
+                            );
+                        }
+                        _ => {}
+                    }
+                };
+            }
+            _ => {}
+        }
+    });
+
+    Ok(())
 }

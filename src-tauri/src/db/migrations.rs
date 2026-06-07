@@ -3,8 +3,14 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::error::AppResult;
 
 const MIGRATIONS: &[(&str, &str)] = &[
-    ("001_initial", include_str!("../../migrations/001_initial.sql")),
-    ("002_bible_tables", include_str!("../../migrations/002_bible_tables.sql")),
+    (
+        "001_initial",
+        include_str!("../../migrations/001_initial.sql"),
+    ),
+    (
+        "002_bible_tables",
+        include_str!("../../migrations/002_bible_tables.sql"),
+    ),
     (
         "003_projection_history",
         include_str!("../../migrations/003_projection_history.sql"),
@@ -35,26 +41,42 @@ pub fn run_migrations(connection: &Connection) -> AppResult<()> {
         }
     }
 
-    ensure_column(
-        connection,
-        "service_programs",
-        "deleted_at",
-        "TEXT",
-    )?;
+    ensure_column(connection, "service_programs", "deleted_at", "TEXT")?;
     ensure_column(
         connection,
         "media_assets",
         "updated_at",
         "TEXT NOT NULL DEFAULT '1970-01-01T00:00:00Z'",
     )?;
-    ensure_column(
-        connection,
-        "media_assets",
-        "deleted_at",
-        "TEXT",
-    )?;
+    ensure_column(connection, "media_assets", "deleted_at", "TEXT")?;
+    ensure_column(connection, "service_items", "deleted_at", "TEXT")?;
+    ensure_default_settings(connection)?;
     seed_demo_data(connection)?;
 
+    Ok(())
+}
+
+fn ensure_default_settings(connection: &Connection) -> AppResult<()> {
+    let defaults = [
+        ("projection.fontSize", "72"),
+        ("projection.transition", "fade"),
+        ("projection.background", "navy"),
+        ("projection.showScriptureVersion", "true"),
+        ("projection.showHymnTitle", "true"),
+        ("hymn.scrollSecondsPerLine", "4.2"),
+        ("shortcut.next", "Space"),
+        ("shortcut.blank", "b"),
+        ("shortcut.logo", "l"),
+        ("backup.autoEnabled", "true"),
+        ("scripture.version", "KJV"),
+        ("loader.text", "DLCF Legon"),
+    ];
+    for (key, value) in defaults {
+        connection.execute(
+            "INSERT OR IGNORE INTO app_settings(key, value) VALUES (?1, ?2)",
+            params![key, value],
+        )?;
+    }
     Ok(())
 }
 
@@ -193,7 +215,13 @@ fn seed_hymns(connection: &Connection) -> AppResult<()> {
         connection.execute(
             "INSERT INTO hymns(number, title, category, author, lyrics_json, is_active)
              VALUES (?1, ?2, ?3, ?4, ?5, 1)",
-            params![number, title, "Demo Worship", "DL Projector Seed", lyrics_json],
+            params![
+                number,
+                title,
+                "Demo Worship",
+                "DL Projector Seed",
+                lyrics_json
+            ],
         )?;
     }
 
@@ -259,7 +287,11 @@ fn seed_personalities(connection: &Connection) -> AppResult<()> {
         }
 
         let department = departments[(index - 1) as usize];
-        let role = if index % 2 == 0 { "Coordinator" } else { "Member" };
+        let role = if index % 2 == 0 {
+            "Coordinator"
+        } else {
+            "Member"
+        };
         let short_bio = format!(
             "Demo profile {index} for testing Personality of the Week slides and photo placeholders."
         );
@@ -294,16 +326,61 @@ fn seed_service_program(connection: &Connection) -> AppResult<()> {
     };
 
     let items = [
-        ("Praise and Worship", "custom", "Praise and Worship", "Let us worship the Lord together."),
-        ("Congregational Hymn", "custom", "Congregational Hymn", "Prepare to sing with joy."),
-        ("Scripture Reading", "custom", "Scripture Reading", "Romans 8:28"),
-        ("Choir Ministration", "custom", "Choir Ministration", "The choir will minister now."),
-        ("Message", "custom", "Message", "Prepare your heart for the Word."),
-        ("Offering", "custom", "Offering", "Give cheerfully unto the Lord."),
-        ("Announcements", "custom", "Announcements", "Please listen to these announcements."),
-        ("Personality of the Week", "custom", "Personality of the Week", "Celebrating faithful service."),
+        (
+            "Praise and Worship",
+            "custom",
+            "Praise and Worship",
+            "Let us worship the Lord together.",
+        ),
+        (
+            "Congregational Hymn",
+            "custom",
+            "Congregational Hymn",
+            "Prepare to sing with joy.",
+        ),
+        (
+            "Scripture Reading",
+            "custom",
+            "Scripture Reading",
+            "Romans 8:28",
+        ),
+        (
+            "Choir Ministration",
+            "custom",
+            "Choir Ministration",
+            "The choir will minister now.",
+        ),
+        (
+            "Message",
+            "custom",
+            "Message",
+            "Prepare your heart for the Word.",
+        ),
+        (
+            "Offering",
+            "custom",
+            "Offering",
+            "Give cheerfully unto the Lord.",
+        ),
+        (
+            "Announcements",
+            "custom",
+            "Announcements",
+            "Please listen to these announcements.",
+        ),
+        (
+            "Personality of the Week",
+            "custom",
+            "Personality of the Week",
+            "Celebrating faithful service.",
+        ),
         ("Closing Prayer", "custom", "Closing Prayer", "Let us pray."),
-        ("Fellowship Benediction", "custom", "Fellowship Benediction", "Surely goodness and mercy shall follow us."),
+        (
+            "Fellowship Benediction",
+            "custom",
+            "Fellowship Benediction",
+            "Surely goodness and mercy shall follow us.",
+        ),
     ];
 
     for (index, (title, item_type, content_title, body)) in items.iter().enumerate() {
@@ -316,9 +393,8 @@ fn seed_service_program(connection: &Connection) -> AppResult<()> {
             continue;
         }
 
-        let content_json = format!(
-            r#"{{"type":"custom","title":"{content_title}","body":"{body}"}}"#
-        );
+        let content_json =
+            format!(r#"{{"type":"custom","title":"{content_title}","body":"{body}"}}"#);
         connection.execute(
             "INSERT INTO service_items(service_program_id, item_type, title, custom_content_json, position)
              VALUES (?1, ?2, ?3, ?4, ?5)",

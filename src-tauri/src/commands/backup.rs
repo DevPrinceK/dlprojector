@@ -34,7 +34,7 @@ pub fn create_auto_backup(state: State<'_, AppState>) -> AppResult<String> {
     create_auto_backup_from_state(state.inner())
 }
 
-fn create_auto_backup_from_state(state: &AppState) -> AppResult<String> {
+pub fn create_auto_backup_from_state(state: &AppState) -> AppResult<String> {
     {
         let conn = state.conn()?;
         conn.execute_batch("PRAGMA wal_checkpoint(FULL);")?;

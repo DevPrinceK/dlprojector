@@ -1,5 +1,6 @@
 import type { ProjectionContent } from "../../../types/projection";
 import { SlideFrame } from "./SlideFrame";
+import { mediaSource } from "../../../lib/media";
 
 interface PersonalitySlideProps {
   content: ProjectionContent;
@@ -12,7 +13,7 @@ export function PersonalitySlide({ content, preview }: PersonalitySlideProps) {
       <article className={preview ? "grid items-center gap-4" : "grid items-center gap-12 lg:grid-cols-[0.8fr_1.2fr]"}>
         <div className={preview ? "projection-card mx-auto hidden aspect-[4/5] w-full max-w-[8rem] items-center justify-center overflow-hidden rounded-xl sm:flex" : "projection-card mx-auto flex aspect-[4/5] w-full max-w-md items-center justify-center overflow-hidden rounded-xl"}>
           {content.imagePath ? (
-            <img src={content.imagePath} alt="" className="h-full w-full object-cover" />
+            <img src={mediaSource(content.imagePath)} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="text-center">
               <div className={preview ? "mx-auto mb-2 h-12 w-12 rounded-full bg-gold-300/20" : "mx-auto mb-4 h-24 w-24 rounded-full bg-gold-300/20"} />

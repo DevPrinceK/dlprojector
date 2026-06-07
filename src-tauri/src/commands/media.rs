@@ -8,7 +8,10 @@ use crate::models::media::MediaAsset;
 use crate::services::media_service;
 
 #[tauri::command]
-pub fn import_media_asset(state: State<'_, AppState>, source_path: String) -> AppResult<MediaAsset> {
+pub fn import_media_asset(
+    state: State<'_, AppState>,
+    source_path: String,
+) -> AppResult<MediaAsset> {
     let (file_name, destination, file_type, file_size) =
         media_service::copy_media_asset(&source_path, &state.media_dir)?;
     let conn = state.conn()?;
@@ -28,7 +31,11 @@ pub fn import_media_asset(state: State<'_, AppState>, source_path: String) -> Ap
 }
 
 #[tauri::command]
-pub fn import_media_data_url(state: State<'_, AppState>, file_name: String, data_url: String) -> AppResult<MediaAsset> {
+pub fn import_media_data_url(
+    state: State<'_, AppState>,
+    file_name: String,
+    data_url: String,
+) -> AppResult<MediaAsset> {
     let (metadata, encoded) = data_url
         .split_once(',')
         .ok_or_else(|| AppError::Validation("Invalid image data.".to_string()))?;
@@ -39,7 +46,9 @@ pub fn import_media_data_url(state: State<'_, AppState>, file_name: String, data
     } else if metadata.contains("image/webp") {
         "webp"
     } else {
-        return Err(AppError::Validation("Image must be PNG, JPG, JPEG, or WEBP.".to_string()));
+        return Err(AppError::Validation(
+            "Image must be PNG, JPG, JPEG, or WEBP.".to_string(),
+        ));
     };
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(encoded)
@@ -51,7 +60,11 @@ pub fn import_media_data_url(state: State<'_, AppState>, file_name: String, data
         .collect::<String>()
         .trim_matches('-')
         .to_string();
-    let safe_stem = if safe_stem.is_empty() { "image".to_string() } else { safe_stem };
+    let safe_stem = if safe_stem.is_empty() {
+        "image".to_string()
+    } else {
+        safe_stem
+    };
     let stored_name = format!("{}-{}.{}", safe_stem, uuid::Uuid::new_v4(), extension);
     let destination = state.media_dir.join(&stored_name);
     std::fs::write(&destination, &bytes)?;
@@ -60,7 +73,12 @@ pub fn import_media_data_url(state: State<'_, AppState>, file_name: String, data
     conn.execute(
         "INSERT INTO media_assets(file_name, file_path, file_type, file_size)
          VALUES (?1, ?2, ?3, ?4)",
-        params![stored_name, destination.to_string_lossy().to_string(), extension, bytes.len() as i64],
+        params![
+            stored_name,
+            destination.to_string_lossy().to_string(),
+            extension,
+            bytes.len() as i64
+        ],
     )?;
 
     get_media_asset_by_id(&conn, conn.last_insert_rowid())?
@@ -68,29 +86,24 @@ pub fn import_media_data_url(state: State<'_, AppState>, file_name: String, data
 }
 
 #[tauri::command]
-pub fn import_media_url(state: State<'_, AppState>, url: String) -> AppResult<MediaAsset> {
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err(AppError::Validation("Image URL must start with http:// or https://.".to_string()));
-    }
-    let file_name = url
-        .rsplit('/')
-        .next()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or("remote-image")
-        .to_string();
-    let file_type = file_name
-        .split('.')
-        .last()
-        .unwrap_or("url")
-        .split('?')
-        .next()
-        .unwrap_or("url")
-        .to_string();
+pub async fn import_media_url(state: State<'_, AppState>, url: String) -> AppResult<MediaAsset> {
+    let media_dir = state.media_dir.clone();
+    let downloaded = tauri::async_runtime::spawn_blocking(move || {
+        media_service::download_media_asset(&url, &media_dir)
+    })
+    .await
+    .map_err(|error| AppError::Message(format!("Image download task failed: {error}")))??;
+    let (file_name, destination, file_type, file_size) = downloaded;
     let conn = state.conn()?;
     conn.execute(
         "INSERT INTO media_assets(file_name, file_path, file_type, file_size)
-         VALUES (?1, ?2, ?3, 0)",
-        params![file_name, url, file_type],
+         VALUES (?1, ?2, ?3, ?4)",
+        params![
+            file_name,
+            destination.to_string_lossy().to_string(),
+            file_type,
+            file_size
+        ],
     )?;
 
     get_media_asset_by_id(&conn, conn.last_insert_rowid())?

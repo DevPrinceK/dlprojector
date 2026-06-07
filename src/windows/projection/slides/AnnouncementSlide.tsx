@@ -1,5 +1,6 @@
 import type { ProjectionContent } from "../../../types/projection";
 import { SlideFrame } from "./SlideFrame";
+import { mediaSource } from "../../../lib/media";
 
 interface AnnouncementSlideProps {
   content: ProjectionContent;
@@ -22,7 +23,7 @@ export function AnnouncementSlide({ content, preview }: AnnouncementSlideProps) 
         </div>
         <div className={preview ? "projection-card hidden aspect-[4/3] items-center justify-center overflow-hidden rounded-xl sm:flex" : "projection-card flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl"}>
           {content.imagePath ? (
-            <img src={content.imagePath} alt="" className="h-full w-full object-cover" />
+            <img src={mediaSource(content.imagePath)} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="px-8 text-center text-2xl font-bold text-white/60">DLCF Legon</div>
           )}

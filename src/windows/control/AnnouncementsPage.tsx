@@ -22,8 +22,11 @@ import { Badge } from "../../components/ui/badge";
 import { Modal } from "../../components/ui/modal";
 import { EmptyState } from "../../components/common/EmptyState";
 import { PageHeader } from "./components/PageHeader";
+import { useConfirm } from "../../hooks/useConfirm";
+import { materializeImage } from "../../features/media/media.api";
 
 export function AnnouncementsPage() {
+  const { confirm, confirmationDialog } = useConfirm();
   const pushToast = useAppStore((state) => state.pushToast);
   const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
   const projectContent = useProjectionStore((state) => state.projectContent);
@@ -75,7 +78,8 @@ export function AnnouncementsPage() {
 
     try {
       setIsSaving(true);
-      const input = { ...form, isActive: true };
+      const imagePath = await materializeImage(form.imagePath, form.title);
+      const input = { ...form, imagePath, isActive: true };
       const saved = editingId ? await updateAnnouncement(editingId, input) : await createAnnouncement(input);
       setPreviewContent(announcementToProjection(saved));
       pushToast({ kind: "success", title: editingId ? "Announcement updated" : "Announcement created" });
@@ -103,6 +107,7 @@ export function AnnouncementsPage() {
   };
 
   const remove = async (announcement: Announcement) => {
+    if (!(await confirm({ title: "Archive announcement?", description: `"${announcement.title}" will be removed from the active list.`, confirmLabel: "Archive" }))) return;
     await deleteAnnouncement(announcement.id);
     pushToast({ kind: "info", title: "Announcement archived" });
     await reload();
@@ -110,6 +115,7 @@ export function AnnouncementsPage() {
 
   return (
     <section>
+      {confirmationDialog}
       <PageHeader
         eyebrow="Announcements"
         title="Slides without PowerPoint"

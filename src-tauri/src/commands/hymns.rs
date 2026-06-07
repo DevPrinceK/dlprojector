@@ -29,7 +29,8 @@ pub fn create_hymn(state: State<'_, AppState>, input: HymnInput) -> AppResult<Hy
         ],
     )?;
     let id = conn.last_insert_rowid();
-    get_hymn_by_id(&conn, id)?.ok_or_else(|| AppError::Message("Could not load saved hymn.".to_string()))
+    get_hymn_by_id(&conn, id)?
+        .ok_or_else(|| AppError::Message("Could not load saved hymn.".to_string()))
 }
 
 #[tauri::command]
@@ -185,7 +186,9 @@ fn validate_hymn(input: &HymnInput) -> AppResult<()> {
         return Err(AppError::Validation("Hymn title is required.".to_string()));
     }
     if input.lyrics_json.get("stanzas").is_none() {
-        return Err(AppError::Validation("Hymn stanzas are required.".to_string()));
+        return Err(AppError::Validation(
+            "Hymn stanzas are required.".to_string(),
+        ));
     }
     Ok(())
 }
@@ -210,7 +213,8 @@ fn map_hymn(row: &rusqlite::Row<'_>) -> rusqlite::Result<Hymn> {
         title: row.get(2)?,
         category: row.get(3)?,
         author: row.get(4)?,
-        lyrics_json: serde_json::from_str(&lyrics_json).unwrap_or_else(|_| serde_json::json!({ "stanzas": [] })),
+        lyrics_json: serde_json::from_str(&lyrics_json)
+            .unwrap_or_else(|_| serde_json::json!({ "stanzas": [] })),
         is_active: row.get::<_, i64>(6)? == 1,
         created_at: row.get(7)?,
         updated_at: row.get(8)?,

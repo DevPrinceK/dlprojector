@@ -3,6 +3,7 @@ import { emitProjectionContent, showBlank, showLoader, showLogo } from "../lib/e
 import { localRepository } from "../lib/localRepository";
 import { tryInvokeCommand } from "../lib/tauri";
 import { BLANK_CONTENT, LOADER_CONTENT, LOGO_CONTENT, type ProjectionContent } from "../types/projection";
+import { useSettingsStore } from "./settings.store";
 
 interface ProjectionStore {
   previewContent: ProjectionContent | null;
@@ -17,6 +18,7 @@ interface ProjectionStore {
   showLoader: () => Promise<void>;
   restorePrevious: () => Promise<void>;
   emergencyReset: () => Promise<void>;
+  restoreLastContent: () => Promise<void>;
 }
 
 export const useProjectionStore = create<ProjectionStore>((set, get) => ({
@@ -62,10 +64,14 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
     });
   },
   showLoader: async () => {
-    await showLoader();
+    const loaderContent = {
+      ...LOADER_CONTENT,
+      title: useSettingsStore.getState().preferences.loaderText
+    };
+    await showLoader(loaderContent.title);
     set({
       previousContent: get().currentContent,
-      currentContent: LOADER_CONTENT,
+      currentContent: loaderContent,
       lastUpdatedAt: new Date().toISOString()
     });
   },
@@ -88,5 +94,19 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       currentContent: LOGO_CONTENT,
       lastUpdatedAt: new Date().toISOString()
     });
+  },
+  restoreLastContent: async () => {
+    const restored = await tryInvokeCommand<ProjectionContent | null>(
+      "get_current_projection_content",
+      undefined,
+      () => localRepository.getLastProjection()
+    );
+    if (restored) {
+      set({
+        currentContent: restored,
+        previewContent: restored,
+        lastUpdatedAt: new Date().toISOString()
+      });
+    }
   }
 }));

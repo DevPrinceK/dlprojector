@@ -6,7 +6,10 @@ use crate::error::{AppError, AppResult};
 use crate::models::announcement::{Announcement, AnnouncementInput};
 
 #[tauri::command]
-pub fn create_announcement(state: State<'_, AppState>, input: AnnouncementInput) -> AppResult<Announcement> {
+pub fn create_announcement(
+    state: State<'_, AppState>,
+    input: AnnouncementInput,
+) -> AppResult<Announcement> {
     validate_announcement(&input)?;
     let conn = state.conn()?;
     conn.execute(
@@ -28,7 +31,11 @@ pub fn create_announcement(state: State<'_, AppState>, input: AnnouncementInput)
 }
 
 #[tauri::command]
-pub fn update_announcement(state: State<'_, AppState>, id: i64, input: AnnouncementInput) -> AppResult<Announcement> {
+pub fn update_announcement(
+    state: State<'_, AppState>,
+    id: i64,
+    input: AnnouncementInput,
+) -> AppResult<Announcement> {
     validate_announcement(&input)?;
     let conn = state.conn()?;
     conn.execute(
@@ -48,7 +55,8 @@ pub fn update_announcement(state: State<'_, AppState>, id: i64, input: Announcem
             id
         ],
     )?;
-    get_announcement_by_id(&conn, id)?.ok_or_else(|| AppError::Message("Announcement not found.".to_string()))
+    get_announcement_by_id(&conn, id)?
+        .ok_or_else(|| AppError::Message("Announcement not found.".to_string()))
 }
 
 #[tauri::command]
@@ -87,10 +95,14 @@ pub fn get_announcement(state: State<'_, AppState>, id: i64) -> AppResult<Option
 
 fn validate_announcement(input: &AnnouncementInput) -> AppResult<()> {
     if input.title.trim().is_empty() {
-        return Err(AppError::Validation("Announcement title is required.".to_string()));
+        return Err(AppError::Validation(
+            "Announcement title is required.".to_string(),
+        ));
     }
     if input.message.trim().is_empty() {
-        return Err(AppError::Validation("Announcement message is required.".to_string()));
+        return Err(AppError::Validation(
+            "Announcement message is required.".to_string(),
+        ));
     }
     Ok(())
 }

@@ -4,9 +4,10 @@ import { SlideFrame } from "./SlideFrame";
 interface ScriptureSlideProps {
   content: ProjectionContent;
   preview?: boolean;
+  showVersion?: boolean;
 }
 
-export function ScriptureSlide({ content, preview }: ScriptureSlideProps) {
+export function ScriptureSlide({ content, preview, showVersion = true }: ScriptureSlideProps) {
   return (
     <SlideFrame preview={preview}>
       <article className="projection-card rounded-xl p-[clamp(1rem,3vw,3rem)] text-center">
@@ -16,7 +17,7 @@ export function ScriptureSlide({ content, preview }: ScriptureSlideProps) {
         <p className={preview ? "projection-text line-clamp-5 whitespace-pre-line text-lg font-semibold leading-relaxed text-white" : "projection-text whitespace-pre-line text-[clamp(2.3rem,5.3vw,5.5rem)] font-semibold leading-tight"}>
           {content.body || "Scripture text will appear here."}
         </p>
-        {content.subtitle ? (
+        {content.subtitle && showVersion ? (
           <div className={preview ? "mt-6 text-sm text-white/70" : "mt-10 text-2xl text-white/70"}>{content.subtitle}</div>
         ) : null}
       </article>

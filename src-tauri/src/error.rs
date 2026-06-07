@@ -13,6 +13,8 @@ pub enum AppError {
     Serialization(#[from] serde_json::Error),
     #[error("Backup failed: {0}")]
     Zip(#[from] zip::result::ZipError),
+    #[error("Network operation failed: {0}")]
+    Network(#[from] reqwest::Error),
     #[error("Application error: {0}")]
     Tauri(String),
     #[error("Could not access shared app state.")]

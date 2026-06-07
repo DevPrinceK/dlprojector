@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { BookOpen, Download, Music, Save } from "lucide-react";
+import { BookOpen, Download, Music, RefreshCw, Save } from "lucide-react";
 import { exportBackup, importBackup } from "../../features/backup/backup.api";
 import { importBundledGhs } from "../../features/hymns/hymn.api";
 import { importBibleCsv, importBundledKjv, listBibleVersions } from "../../features/scriptures/scripture.api";
-import { getSettings, saveSetting, type AppSetting } from "../../features/settings/settings.api";
+import { getSettings, notifySettingsChanged, saveSetting, type AppSetting } from "../../features/settings/settings.api";
 import { toErrorMessage } from "../../lib/error-handling";
 import { useAppStore } from "../../stores/app.store";
 import { Button } from "../../components/ui/button";
@@ -13,6 +13,10 @@ import { Label } from "../../components/ui/label";
 import { PageHeader } from "./components/PageHeader";
 import type { BibleVersion } from "../../types/scripture";
 import { Badge } from "../../components/ui/badge";
+import { chooseBackupRestorePath, chooseBackupSavePath } from "../../lib/dialogs";
+import { useSettingsStore } from "../../stores/settings.store";
+import { checkForUpdates } from "../../features/updates/update.api";
+import { isTauriRuntime } from "../../lib/tauri";
 
 interface DownloadableBibleVersion {
   abbreviation: string;
@@ -31,6 +35,7 @@ const downloadableBibleVersions: DownloadableBibleVersion[] = [
 
 export function SettingsPage() {
   const pushToast = useAppStore((state) => state.pushToast);
+  const applySettings = useSettingsStore((state) => state.apply);
   const [settings, setSettings] = useState<AppSetting[]>([]);
   const [backupPath, setBackupPath] = useState("");
   const [restorePath, setRestorePath] = useState("");
@@ -38,6 +43,7 @@ export function SettingsPage() {
   const [isImportingGhs, setIsImportingGhs] = useState(false);
   const [downloadingBibleVersion, setDownloadingBibleVersion] = useState<string | null>(null);
   const [installedVersions, setInstalledVersions] = useState<BibleVersion[]>([]);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   useEffect(() => {
     void getSettings().then(setSettings);
@@ -55,6 +61,8 @@ export function SettingsPage() {
   const saveAll = async () => {
     try {
       await Promise.all(settings.map((setting) => saveSetting(setting.key, setting.value)));
+      applySettings(settings);
+      await notifySettingsChanged(settings);
       pushToast({ kind: "success", title: "Settings saved" });
     } catch (error) {
       pushToast({ kind: "error", title: "Could not save settings", description: toErrorMessage(error) });
@@ -63,7 +71,8 @@ export function SettingsPage() {
 
   const runExport = async () => {
     try {
-      const result = await exportBackup(backupPath || undefined);
+      const selectedPath = backupPath || (await chooseBackupSavePath()) || undefined;
+      const result = await exportBackup(selectedPath);
       pushToast({ kind: "success", title: "Backup exported", description: result });
     } catch (error) {
       pushToast({ kind: "error", title: "Backup failed", description: toErrorMessage(error) });
@@ -72,7 +81,9 @@ export function SettingsPage() {
 
   const runRestore = async () => {
     try {
-      await importBackup(restorePath);
+      const selectedPath = restorePath || (await chooseBackupRestorePath());
+      if (!selectedPath) return;
+      await importBackup(selectedPath);
       pushToast({ kind: "success", title: "Backup restored", description: "Restart the app to reload restored data." });
     } catch (error) {
       pushToast({ kind: "error", title: "Restore failed", description: toErrorMessage(error) });
@@ -132,6 +143,28 @@ export function SettingsPage() {
       pushToast({ kind: "error", title: `${version.abbreviation} download failed`, description: toErrorMessage(error) });
     } finally {
       setDownloadingBibleVersion(null);
+    }
+  };
+
+  const runUpdateCheck = async () => {
+    try {
+      setIsCheckingUpdates(true);
+      const status = await checkForUpdates();
+      if (!status.updateAvailable) {
+        pushToast({ kind: "success", title: "DL Projector is up to date", description: `Version ${status.currentVersion}` });
+        return;
+      }
+      pushToast({ kind: "info", title: `Version ${status.latestVersion} is available`, description: "Opening the trusted GitHub release download." });
+      if (isTauriRuntime()) {
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(status.releaseUrl);
+      } else {
+        window.open(status.releaseUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      pushToast({ kind: "error", title: "Update check failed", description: toErrorMessage(error) });
+    } finally {
+      setIsCheckingUpdates(false);
     }
   };
 
@@ -238,15 +271,16 @@ export function SettingsPage() {
             <CardDescription>Stored locally in SQLite in the desktop app.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {settings.map((setting) => (
-              <div key={setting.key} className="space-y-2">
-                <Label>{setting.key}</Label>
-                <Input value={setting.value} onChange={(event) => updateSetting(setting.key, event.target.value)} />
-              </div>
+            {settings.filter((setting) => !setting.key.startsWith("demo.") && !setting.key.startsWith("projection.last") && !setting.key.startsWith("projection.window")).map((setting) => (
+              <SettingField key={setting.key} setting={setting} onChange={(value) => updateSetting(setting.key, value)} />
             ))}
             <Button variant="gold" onClick={() => void saveAll()}>
               <Save className="h-4 w-4" />
               Save Settings
+            </Button>
+            <Button variant="outline" onClick={() => void runUpdateCheck()} disabled={isCheckingUpdates}>
+              <RefreshCw className={`h-4 w-4 ${isCheckingUpdates ? "animate-spin" : ""}`} />
+              {isCheckingUpdates ? "Checking..." : "Check for updates"}
             </Button>
           </CardContent>
         </Card>
@@ -280,5 +314,54 @@ export function SettingsPage() {
         </Card>
       </div>
     </section>
+  );
+}
+
+function SettingField({ setting, onChange }: { setting: AppSetting; onChange: (value: string) => void }) {
+  const labels: Record<string, string> = {
+    "projection.fontSize": "Projection font size",
+    "projection.transition": "Slide transition",
+    "projection.background": "Projection background",
+    "projection.showScriptureVersion": "Show scripture version",
+    "projection.showHymnTitle": "Show hymn title",
+    "hymn.scrollSecondsPerLine": "Hymn scroll tempo (seconds per line)",
+    "shortcut.next": "Next/project shortcut",
+    "shortcut.blank": "Blank shortcut",
+    "shortcut.logo": "Logo shortcut",
+    "backup.autoEnabled": "Automatic backup on exit",
+    "scripture.version": "Default Bible version",
+    "loader.text": "Loading screen text"
+  };
+  const booleanSetting = setting.key === "backup.autoEnabled" || setting.key.startsWith("projection.show");
+  const options =
+    setting.key === "projection.transition"
+      ? ["fade", "slide", "none"]
+      : setting.key === "projection.background"
+        ? ["navy", "black", "warm"]
+        : null;
+
+  return (
+    <div className="space-y-2">
+      <Label>{labels[setting.key] ?? setting.key}</Label>
+      {booleanSetting ? (
+        <select className="h-11 w-full rounded-lg border border-input bg-white px-3" value={setting.value} onChange={(event) => onChange(event.target.value)}>
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
+      ) : options ? (
+        <select className="h-11 w-full rounded-lg border border-input bg-white px-3 capitalize" value={setting.value} onChange={(event) => onChange(event.target.value)}>
+          {options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      ) : (
+        <Input
+          type={setting.key.includes("fontSize") || setting.key.includes("Seconds") ? "number" : "text"}
+          min={setting.key.includes("fontSize") ? 36 : undefined}
+          max={setting.key.includes("fontSize") ? 120 : undefined}
+          step={setting.key.includes("Seconds") ? 0.1 : undefined}
+          value={setting.value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
+    </div>
   );
 }

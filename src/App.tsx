@@ -4,6 +4,8 @@ import { ProjectionApp } from "./windows/projection/ProjectionApp";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { LoaderSlide } from "./windows/projection/slides/LoaderSlide";
 import { isTauriRuntime } from "./lib/tauri";
+import { useSettingsStore } from "./stores/settings.store";
+import { listenSettingsChanged } from "./features/settings/settings.api";
 
 type WindowMode = "control" | "projection" | "detecting";
 
@@ -13,10 +15,25 @@ function hasProjectionRoute() {
 }
 
 export function App() {
+  const loadSettings = useSettingsStore((state) => state.load);
+  const applySettings = useSettingsStore((state) => state.apply);
+  const loaderText = useSettingsStore((state) => state.preferences.loaderText);
   const [windowMode, setWindowMode] = useState<WindowMode>(() => {
     if (hasProjectionRoute()) return "projection";
     return isTauriRuntime() ? "detecting" : "control";
   });
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    void listenSettingsChanged(applySettings).then((unlisten) => {
+      cleanup = unlisten;
+    });
+    return () => cleanup?.();
+  }, [applySettings]);
 
   useEffect(() => {
     if (windowMode !== "detecting") return;
@@ -38,8 +55,8 @@ export function App() {
   }, [windowMode]);
 
   return (
-    <ErrorBoundary fallback={<LoaderSlide subtitle="Recovering display..." />}>
-      {windowMode === "detecting" ? <LoaderSlide subtitle="Loading window..." /> : null}
+    <ErrorBoundary fallback={<LoaderSlide title={loaderText} subtitle="Recovering display..." />}>
+      {windowMode === "detecting" ? <LoaderSlide title={loaderText} subtitle="Loading window..." /> : null}
       {windowMode === "projection" ? <ProjectionApp /> : null}
       {windowMode === "control" ? <ControlApp /> : null}
     </ErrorBoundary>

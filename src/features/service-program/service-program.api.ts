@@ -19,6 +19,12 @@ export async function listServicePrograms() {
   return tryInvokeCommand<ServiceProgram[]>("list_service_programs", undefined, () => localRepository.listServicePrograms());
 }
 
+export async function duplicateServiceProgram(id: number, title: string) {
+  return tryInvokeCommand<ServiceProgram>("duplicate_service_program", { id, title }, () =>
+    localRepository.duplicateServiceProgram(id, title)
+  );
+}
+
 export async function createServiceProgram(input: ServiceProgramInput) {
   return tryInvokeCommand<ServiceProgram>("create_service_program", { input }, () =>
     localRepository.createServiceProgram(input)

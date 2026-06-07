@@ -39,6 +39,7 @@ import { openProjectionWindow } from "../../lib/projection-window";
 import { tryInvokeCommand } from "../../lib/tauri";
 import { useAppStore, type ControlView } from "../../stores/app.store";
 import { useProjectionStore } from "../../stores/projection.store";
+import { useSettingsStore } from "../../stores/settings.store";
 import type { ProjectionContent } from "../../types/projection";
 import type { ServiceProgram } from "../../types/service-program";
 import { Badge } from "../../components/ui/badge";
@@ -101,6 +102,7 @@ export function ControlConsole() {
   const [isSearching, setIsSearching] = useState(false);
   const [program, setProgram] = useState<ServiceProgram | null>(null);
   const [stagedServiceItemId, setStagedServiceItemId] = useState<number | null>(null);
+  const [liveServiceItemId, setLiveServiceItemId] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -305,13 +307,19 @@ export function ControlConsole() {
         <TakeConsole
           disabled={!previewContent}
           onPrevious={() => runAction("Could not restore previous slide", restorePrevious)}
-          onTake={() => runAction("Could not take preview live", projectPreview)}
+          onTake={() =>
+            runAction("Could not take preview live", async () => {
+              await projectPreview();
+              if (stagedServiceItemId !== null) setLiveServiceItemId(stagedServiceItemId);
+            })
+          }
           onNext={() => setActiveView("service")}
         />
 
         <Timeline
           program={program}
           stagedItemId={stagedServiceItemId}
+          liveItemId={liveServiceItemId}
           onAddItem={() => setActiveView("service")}
           onStageItem={(item) => {
             const content = serviceItemToProjection(item);
@@ -403,14 +411,17 @@ function CommandCenter({
 
 function ProjectionDeck({ variant, content }: { variant: "preview" | "live"; content: ProjectionContent | null }) {
   const isLive = variant === "live";
+  const preferences = useSettingsStore((state) => state.preferences);
 
   return (
     <article
-      className={`flex min-h-0 flex-col overflow-hidden rounded-[1.5rem] border bg-white/[0.055] shadow-2xl shadow-black/20 backdrop-blur-xl ${
-        isLive ? "border-emerald-300/20" : "border-amber-300/20"
+      className={`flex min-h-0 flex-col overflow-hidden rounded-[1.5rem] border-2 backdrop-blur-xl ${
+        isLive
+          ? "live-deck border-[#22C55E] bg-emerald-950/20 shadow-[0_0_42px_rgba(34,197,94,0.18)]"
+          : "preview-deck border-[#F6C445] bg-amber-950/15 shadow-[0_0_38px_rgba(246,196,69,0.16)]"
       }`}
     >
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+      <div className={`flex items-center justify-between border-b px-4 py-3 ${isLive ? "border-emerald-400/25 bg-emerald-400/[0.07]" : "border-amber-300/25 bg-amber-300/[0.07]"}`}>
         <div className="flex items-center gap-3">
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${isLive ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
             {isLive ? <Radio className="h-5 w-5" /> : <PanelTopOpen className="h-5 w-5" />}
@@ -421,13 +432,14 @@ function ProjectionDeck({ variant, content }: { variant: "preview" | "live"; con
           </div>
         </div>
         <Badge className={`border-white/10 ${isLive ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
-          {isLive ? "ON AIR" : "STAGED"}
+          {isLive ? <span className="live-status-dot mr-1.5 h-2 w-2 rounded-full bg-emerald-300" /> : null}
+          {isLive ? "LIVE" : "STAGED"}
         </Badge>
       </div>
 
       <div className="min-h-0 flex-1 p-3">
         <div className="projection-bg h-full overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
-          {content ? <ProjectionRenderer content={content} preview /> : <EmptyDeck />}
+          {content ? <ProjectionRenderer content={content} preview preferences={preferences} /> : <EmptyDeck />}
         </div>
       </div>
     </article>
@@ -467,9 +479,9 @@ function TakeConsole({
         type="button"
         disabled={disabled}
         onClick={onTake}
-        className="group relative h-16 min-w-[260px] overflow-hidden rounded-2xl bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 px-10 text-lg font-black tracking-[0.18em] text-slate-950 shadow-[0_0_60px_rgba(251,191,36,0.32)] transition hover:shadow-[0_0_90px_rgba(251,191,36,0.45)] disabled:cursor-not-allowed disabled:opacity-45"
+        className="take-live-button group relative h-16 min-w-[260px] overflow-hidden rounded-2xl bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 px-10 text-lg font-black tracking-[0.18em] text-slate-950 shadow-[0_0_60px_rgba(251,191,36,0.32)] transition hover:shadow-[0_0_90px_rgba(251,191,36,0.45)] disabled:cursor-not-allowed disabled:opacity-45"
       >
-        <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition duration-700 group-hover:translate-x-full" />
+        <span className="take-live-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/45 to-transparent" />
         <span className="relative flex items-center justify-center gap-3">
           <Zap className="h-5 w-5 fill-slate-950" />
           TAKE LIVE
@@ -486,11 +498,13 @@ function TakeConsole({
 function Timeline({
   program,
   stagedItemId,
+  liveItemId,
   onAddItem,
   onStageItem
 }: {
   program: ServiceProgram | null;
   stagedItemId: number | null;
+  liveItemId: number | null;
   onAddItem: () => void;
   onStageItem: (item: ServiceProgram["items"][number]) => void;
 }) {
@@ -514,7 +528,7 @@ function Timeline({
 
       <div className="safe-scrollbar flex max-w-full gap-3 overflow-x-auto pb-2">
         {(items.length ? items : fallbackTimeline).map((item, index) => {
-          const isLive = index === 0;
+          const isLive = "itemType" in item ? item.id === liveItemId || (liveItemId === null && index === 0) : index === 0;
           const isStaged = "itemType" in item && item.id === stagedItemId;
           const isDone = false;
           const title = item.title;
@@ -531,7 +545,7 @@ function Timeline({
                 isStaged
                   ? "border-amber-200 bg-amber-300/15 shadow-[0_0_44px_rgba(251,191,36,0.24)] ring-2 ring-amber-200/35"
                   : isLive
-                  ? "border-emerald-300/30 bg-emerald-400/10 shadow-[0_0_40px_rgba(16,185,129,0.12)]"
+                  ? "timeline-live-item border-emerald-300/40 bg-emerald-400/10 shadow-[0_0_40px_rgba(16,185,129,0.12)]"
                   : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.05]"
               } ${isDone ? "opacity-45" : "opacity-100"}`}
             >
@@ -584,6 +598,12 @@ function UtilityRail({
   onShowLoader: () => void;
   onEmergencyReset: () => void;
 }) {
+  const loaderText = useSettingsStore((state) => state.preferences.loaderText);
+  const currentTitle =
+    currentContent.type === "loader"
+      ? loaderText
+      : currentContent.title ?? currentContent.reference ?? currentContent.type;
+
   return (
     <aside className="grid min-h-0 content-start gap-3">
       <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-2xl shadow-black/20 backdrop-blur-xl">
@@ -607,7 +627,7 @@ function UtilityRail({
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-2xl shadow-black/20 backdrop-blur-xl">
         <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">Currently Live</p>
-        <h3 className="mt-2 line-clamp-2 font-black text-white">{currentContent.title ?? currentContent.reference ?? currentContent.type}</h3>
+        <h3 className="mt-2 line-clamp-2 font-black text-white">{currentTitle}</h3>
         <p className="mt-2 line-clamp-4 whitespace-pre-line text-sm text-slate-400">{currentContent.body ?? currentContent.subtitle}</p>
       </div>
 
@@ -637,7 +657,7 @@ function UtilityRail({
 
 function StatusPill() {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 shadow-[0_0_30px_rgba(16,185,129,0.12)]">
+    <div className="projector-heartbeat flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 shadow-[0_0_30px_rgba(16,185,129,0.12)]">
       <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.9)]" />
       Projector Connected
     </div>

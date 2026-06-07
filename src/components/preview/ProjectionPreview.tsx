@@ -2,11 +2,13 @@ import { ProjectionRenderer } from "../../windows/projection/ProjectionRenderer"
 import { useProjectionStore } from "../../stores/projection.store";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { useSettingsStore } from "../../stores/settings.store";
 
 export function ProjectionPreview() {
   const previewContent = useProjectionStore((state) => state.previewContent);
   const currentContent = useProjectionStore((state) => state.currentContent);
   const projectPreview = useProjectionStore((state) => state.projectPreview);
+  const preferences = useSettingsStore((state) => state.preferences);
 
   return (
     <aside className="hidden h-screen w-[22rem] shrink-0 overflow-y-auto border-l border-white/70 bg-white/[0.82] p-3 backdrop-blur-xl 2xl:block">
@@ -19,7 +21,7 @@ export function ProjectionPreview() {
       </div>
 
       <div className="projection-bg overflow-hidden rounded-xl shadow-soft">
-        {previewContent ? <ProjectionRenderer content={previewContent} preview /> : null}
+        {previewContent ? <ProjectionRenderer content={previewContent} preview preferences={preferences} /> : null}
       </div>
 
       <Button className="mt-4 w-full" variant="gold" onClick={() => void projectPreview()}>

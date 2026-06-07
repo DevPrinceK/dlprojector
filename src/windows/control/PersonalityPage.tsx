@@ -21,8 +21,11 @@ import { Textarea } from "../../components/ui/textarea";
 import { Modal } from "../../components/ui/modal";
 import { EmptyState } from "../../components/common/EmptyState";
 import { PageHeader } from "./components/PageHeader";
+import { useConfirm } from "../../hooks/useConfirm";
+import { materializeImage } from "../../features/media/media.api";
 
 export function PersonalityPage() {
+  const { confirm, confirmationDialog } = useConfirm();
   const pushToast = useAppStore((state) => state.pushToast);
   const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
   const projectContent = useProjectionStore((state) => state.projectContent);
@@ -73,7 +76,8 @@ export function PersonalityPage() {
 
     try {
       setIsSaving(true);
-      const input = { ...form, isActive: true };
+      const photoPath = await materializeImage(form.photoPath, form.fullName);
+      const input = { ...form, photoPath, isActive: true };
       const saved = editingId ? await updatePersonality(editingId, input) : await createPersonality(input);
       setPreviewContent(personalityToProjection(saved));
       pushToast({ kind: "success", title: editingId ? "Profile updated" : "Profile created" });
@@ -101,6 +105,7 @@ export function PersonalityPage() {
   };
 
   const remove = async (personality: Personality) => {
+    if (!(await confirm({ title: "Archive profile?", description: `${personality.fullName} will be removed from the active profile list.`, confirmLabel: "Archive" }))) return;
     await deletePersonality(personality.id);
     pushToast({ kind: "info", title: "Profile archived" });
     await reload();
@@ -108,6 +113,7 @@ export function PersonalityPage() {
 
   return (
     <section>
+      {confirmationDialog}
       <PageHeader
         eyebrow="Personality"
         title="Celebrate a member"

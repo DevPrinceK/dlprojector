@@ -119,14 +119,30 @@ jobs:
         run: npm ci
 
       - name: Build Tauri bundles
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
+
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          find src-tauri/target/release/bundle -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" \) -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > "checksums-${{ matrix.platform.name }}.txt"
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dl-projector-${{ matrix.platform.name }}
           if-no-files-found: error
-          path: ${{ matrix.platform.artifact_globs }}
+          path: |
+            ${{ matrix.platform.artifact_globs }}
+            checksums-${{ matrix.platform.name }}.txt
 
       - name: Upload installers to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -136,4 +152,6 @@ jobs:
           draft: false
           prerelease: ${{ env.IS_PRERELEASE }}
           fail_on_unmatched_files: true
-          files: ${{ matrix.platform.artifact_globs }}
+          files: |
+            ${{ matrix.platform.artifact_globs }}
+            checksums-${{ matrix.platform.name }}.txt

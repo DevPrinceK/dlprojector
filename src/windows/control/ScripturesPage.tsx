@@ -12,8 +12,10 @@ import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
 import { EmptyState } from "../../components/common/EmptyState";
 import { PageHeader } from "./components/PageHeader";
+import { useSettingsStore } from "../../stores/settings.store";
 
 export function ScripturesPage() {
+  const defaultBibleVersion = useSettingsStore((state) => state.preferences.defaultBibleVersion);
   const pushToast = useAppStore((state) => state.pushToast);
   const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
   const projectContent = useProjectionStore((state) => state.projectContent);
@@ -21,9 +23,10 @@ export function ScripturesPage() {
   const [results, setResults] = useState<ScriptureSearchResult[]>([]);
   const [selected, setSelected] = useState<ScriptureSearchResult | null>(null);
   const [versions, setVersions] = useState<BibleVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState("KJV");
+  const [selectedVersion, setSelectedVersion] = useState(defaultBibleVersion);
   const [verseIndex, setVerseIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitchingVersion, setIsSwitchingVersion] = useState(false);
 
   const runSearch = async (nextQuery = query) => {
     setIsLoading(true);
@@ -44,8 +47,9 @@ export function ScripturesPage() {
   useEffect(() => {
     void listBibleVersions().then((items) => {
       setVersions(items);
-      const defaultVersion = items.find((item) => item.isDefault)?.abbreviation ?? items[0]?.abbreviation ?? "KJV";
-      setSelectedVersion(defaultVersion);
+      const preferredVersion = items.find((item) => item.abbreviation === defaultBibleVersion)?.abbreviation;
+      const fallbackVersion = items.find((item) => item.isDefault)?.abbreviation ?? items[0]?.abbreviation ?? "KJV";
+      setSelectedVersion(preferredVersion ?? fallbackVersion);
     });
     void runSearch("John 3:16");
   }, []);
@@ -69,6 +73,39 @@ export function ScripturesPage() {
   const projectSelected = async () => {
     if (!selected) return;
     await projectContent(scriptureResultToProjection(selected, verseIndex));
+  };
+
+  const switchPreviewVersion = async (version: string) => {
+    if (!selected || version === selected.version) return;
+
+    setIsSwitchingVersion(true);
+    try {
+      const matchingResults = await searchScriptures(selected.reference, version);
+      const matchingPassage = matchingResults[0];
+      if (!matchingPassage) {
+        pushToast({
+          kind: "error",
+          title: `${version} passage unavailable`,
+          description: `${selected.reference} was not found in the selected Bible version.`
+        });
+        return;
+      }
+
+      const currentVerse = selected.verses[verseIndex]?.verse;
+      const matchingVerseIndex =
+        currentVerse === undefined
+          ? Math.min(verseIndex, matchingPassage.verses.length - 1)
+          : matchingPassage.verses.findIndex((verse) => verse.verse === currentVerse);
+      selectResult(matchingPassage, matchingVerseIndex >= 0 ? matchingVerseIndex : 0);
+    } catch (error) {
+      pushToast({
+        kind: "error",
+        title: "Could not change Bible version",
+        description: toErrorMessage(error)
+      });
+    } finally {
+      setIsSwitchingVersion(false);
+    }
   };
 
   return (
@@ -164,8 +201,22 @@ export function ScripturesPage() {
                     Next
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                  <Button variant="gold" onClick={() => void projectSelected()}>
-                    Project Verse
+                  <select
+                    className="h-11 rounded-lg border border-input bg-white px-3 text-sm font-semibold text-navy-900 disabled:cursor-wait disabled:opacity-60"
+                    value={selected.version}
+                    onChange={(event) => void switchPreviewVersion(event.target.value)}
+                    disabled={isSwitchingVersion}
+                    aria-label="Quick projection Bible version"
+                    title="Change the preview and projection Bible version"
+                  >
+                    {versions.map((version) => (
+                      <option key={version.abbreviation} value={version.abbreviation}>
+                        {version.abbreviation}
+                      </option>
+                    ))}
+                  </select>
+                  <Button variant="gold" onClick={() => void projectSelected()} disabled={isSwitchingVersion}>
+                    {isSwitchingVersion ? "Changing Version..." : "Project Verse"}
                   </Button>
                 </div>
               </div>

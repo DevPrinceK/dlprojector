@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { listenProjectionContent } from "../../lib/events";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { LOGO_CONTENT, type ProjectionContent } from "../../types/projection";
 import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 import { ProjectionRenderer } from "./ProjectionRenderer";
+import { useSettingsStore } from "../../stores/settings.store";
 
 export function ProjectionApp() {
+  const preferences = useSettingsStore((state) => state.preferences);
   const [content, setContent] = useState<ProjectionContent>(LOGO_CONTENT);
   const [lastValidContent, setLastValidContent] = useState<ProjectionContent>(LOGO_CONTENT);
 
@@ -46,9 +48,12 @@ export function ProjectionApp() {
   }, []);
 
   return (
-    <main className="projection-bg min-h-screen cursor-none overflow-hidden text-white">
-      <ErrorBoundary fallback={<ProjectionRenderer content={lastValidContent} />}>
-        <ProjectionRenderer content={content} />
+    <main
+      className={`projection-bg projection-bg-${preferences.background} transition-${preferences.transition} min-h-screen cursor-none overflow-hidden text-white`}
+      style={{ "--projection-font-size": `${preferences.fontSize}px` } as CSSProperties}
+    >
+      <ErrorBoundary fallback={<ProjectionRenderer content={lastValidContent} preferences={preferences} />}>
+        <ProjectionRenderer content={content} preferences={preferences} />
       </ErrorBoundary>
     </main>
   );

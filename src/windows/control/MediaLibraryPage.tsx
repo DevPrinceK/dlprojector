@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Image, Upload } from "lucide-react";
-import { importMediaAsset, importMediaDataUrl, importMediaUrl, listMediaAssets } from "../../features/media/media.api";
+import { Image, Trash2, Upload } from "lucide-react";
+import { deleteMediaAsset, importMediaAsset, importMediaDataUrl, importMediaUrl, listMediaAssets } from "../../features/media/media.api";
 import { toErrorMessage } from "../../lib/error-handling";
 import { validateImagePath } from "../../lib/validators";
 import { useAppStore } from "../../stores/app.store";
@@ -11,8 +11,10 @@ import { Input } from "../../components/ui/input";
 import { Modal } from "../../components/ui/modal";
 import { EmptyState } from "../../components/common/EmptyState";
 import { PageHeader } from "./components/PageHeader";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export function MediaLibraryPage() {
+  const { confirm, confirmationDialog } = useConfirm();
   const pushToast = useAppStore((state) => state.pushToast);
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [sourcePath, setSourcePath] = useState("");
@@ -66,8 +68,16 @@ export function MediaLibraryPage() {
     }
   };
 
+  const removeAsset = async (asset: MediaAsset) => {
+    if (!(await confirm({ title: "Delete media asset?", description: `${asset.fileName} will be removed from local app storage.`, confirmLabel: "Delete asset" }))) return;
+    await deleteMediaAsset(asset.id);
+    pushToast({ kind: "info", title: "Media deleted", description: asset.fileName });
+    await reload();
+  };
+
   return (
     <section>
+      {confirmationDialog}
       <PageHeader
         eyebrow="Media"
         title="Local media library"
@@ -96,6 +106,10 @@ export function MediaLibraryPage() {
                     <Image className="mb-3 h-5 w-5 text-gold-700" />
                     <div className="font-bold">{asset.fileName}</div>
                     <div className="mt-1 break-all text-xs text-muted-foreground">{asset.filePath}</div>
+                    <Button className="mt-3" variant="ghost" size="sm" onClick={() => void removeAsset(asset)}>
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
                   </div>
                 ))}
               </div>

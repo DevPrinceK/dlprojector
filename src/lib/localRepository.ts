@@ -373,6 +373,34 @@ export const localRepository = {
     return program;
   },
 
+  duplicateServiceProgram(id: EntityId, title: string) {
+    const db = loadDb();
+    const source = db.servicePrograms.find((item) => item.id === id);
+    if (!source) throw new Error("Service program not found.");
+    const timestamp = nowIso();
+    const newId = nextId(db);
+    const program: ServiceProgram = {
+      ...source,
+      id: newId,
+      title,
+      serviceDate: undefined,
+      isActive: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      deletedAt: undefined,
+      items: source.items.map((item) => ({
+        ...item,
+        id: nextId(db),
+        serviceProgramId: newId,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      }))
+    };
+    db.servicePrograms.unshift(program);
+    saveDb(db);
+    return program;
+  },
+
   updateServiceProgram(id: EntityId, input: ServiceProgramInput) {
     const db = loadDb();
     const program = db.servicePrograms.find((item) => item.id === id);
@@ -469,6 +497,10 @@ export const localRepository = {
     db.projectionHistory.unshift(content);
     db.projectionHistory = db.projectionHistory.slice(0, 30);
     saveDb(db);
+  },
+
+  getLastProjection() {
+    return loadDb().projectionHistory[0] ?? null;
   }
 };
 

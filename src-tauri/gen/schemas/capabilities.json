@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default permissions for DL Projector windows","local":true,"windows":["main","projection"],"permissions":["core:default","core:event:default","core:window:default","core:webview:default","opener:default"]}}
+{"default":{"identifier":"default","description":"Default permissions for DL Projector windows","local":true,"windows":["main","projection"],"permissions":["core:default","core:event:default","core:window:default","core:webview:default","dialog:default","opener:default"]}}

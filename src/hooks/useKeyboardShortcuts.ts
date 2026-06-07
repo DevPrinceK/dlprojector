@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAppStore } from "../stores/app.store";
 import { useProjectionStore } from "../stores/projection.store";
 import { openProjectionWindow } from "../lib/projection-window";
+import { useSettingsStore } from "../stores/settings.store";
 
 export function useKeyboardShortcuts() {
   const setActiveView = useAppStore((state) => state.setActiveView);
@@ -10,6 +11,7 @@ export function useKeyboardShortcuts() {
   const showBlank = useProjectionStore((state) => state.showBlank);
   const showLogo = useProjectionStore((state) => state.showLogo);
   const restorePrevious = useProjectionStore((state) => state.restorePrevious);
+  const preferences = useSettingsStore((state) => state.preferences);
 
   useEffect(() => {
     const onKeyDown = async (event: KeyboardEvent) => {
@@ -39,7 +41,7 @@ export function useKeyboardShortcuts() {
 
       if (isTyping) return;
 
-      if (event.key === " " || event.key === "ArrowRight") {
+      if (matchesShortcut(event, preferences.shortcutNext) || event.key === "ArrowRight") {
         event.preventDefault();
         await projectPreview();
         return;
@@ -51,13 +53,13 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      if (event.key.toLowerCase() === "b") {
+      if (matchesShortcut(event, preferences.shortcutBlank)) {
         event.preventDefault();
         await showBlank();
         return;
       }
 
-      if (event.key.toLowerCase() === "l") {
+      if (matchesShortcut(event, preferences.shortcutLogo)) {
         event.preventDefault();
         await showLogo();
       }
@@ -65,5 +67,11 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [projectPreview, pushToast, restorePrevious, setActiveView, showBlank, showLogo]);
+  }, [preferences, projectPreview, pushToast, restorePrevious, setActiveView, showBlank, showLogo]);
+}
+
+function matchesShortcut(event: KeyboardEvent, configured: string) {
+  const normalized = configured.trim().toLowerCase();
+  if (normalized === "space") return event.key === " ";
+  return event.key.toLowerCase() === normalized;
 }

@@ -35,6 +35,14 @@ impl AppState {
         if pending_restore.exists() {
             std::fs::copy(&pending_restore, &db_path)?;
             std::fs::remove_file(&pending_restore)?;
+            let pending_media = app_data_dir.join("restore-pending-media");
+            if pending_media.exists() {
+                if media_dir.exists() {
+                    std::fs::remove_dir_all(&media_dir)?;
+                }
+                std::fs::rename(pending_media, &media_dir)?;
+                std::fs::create_dir_all(&media_dir)?;
+            }
         }
         if db_path.exists() {
             let migration_backup = backup_dir.join(format!(
@@ -57,6 +65,8 @@ impl AppState {
     }
 
     pub fn conn(&self) -> AppResult<MutexGuard<'_, Connection>> {
-        self.connection.lock().map_err(|_| AppError::StateUnavailable)
+        self.connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)
     }
 }

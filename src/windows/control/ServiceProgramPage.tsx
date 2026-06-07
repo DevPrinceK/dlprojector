@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, CalendarDays, Edit3, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Copy, Edit3, GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   addServiceItem,
   createServiceProgram,
   deleteServiceItem,
   deleteServiceProgram,
+  duplicateServiceProgram,
   getActiveServiceProgram,
   listServicePrograms,
   updateServiceProgram,
@@ -27,8 +28,10 @@ import { Badge } from "../../components/ui/badge";
 import { Modal } from "../../components/ui/modal";
 import { EmptyState } from "../../components/common/EmptyState";
 import { PageHeader } from "./components/PageHeader";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export function ServiceProgramPage() {
+  const { confirm, confirmationDialog } = useConfirm();
   const pushToast = useAppStore((state) => state.pushToast);
   const previewContent = useProjectionStore((state) => state.previewContent);
   const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
@@ -44,6 +47,7 @@ export function ServiceProgramPage() {
   const [isSavingProgram, setIsSavingProgram] = useState(false);
   const [isSavingItem, setIsSavingItem] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<number | null>(null);
 
   const reload = async () => {
     try {
@@ -174,6 +178,7 @@ export function ServiceProgramPage() {
   };
 
   const removeProgram = async (candidate: ServiceProgram) => {
+    if (!(await confirm({ title: "Delete service program?", description: `"${candidate.title}" and its service items will be removed.`, confirmLabel: "Delete program" }))) return;
     await deleteServiceProgram(candidate.id);
     pushToast({ kind: "info", title: "Service program deleted", description: candidate.title });
     const selected = await reload();
@@ -191,8 +196,28 @@ export function ServiceProgramPage() {
   };
 
   const removeItem = async (item: ServiceItem) => {
+    if (!(await confirm({ title: "Delete service item?", description: `"${item.title}" will be removed from this service.`, confirmLabel: "Delete item" }))) return;
     await deleteServiceItem(item.id);
     pushToast({ kind: "info", title: "Service item deleted", description: item.title });
+    announceProgramSelection(await reload());
+  };
+
+  const duplicateProgram = async (candidate: ServiceProgram) => {
+    const duplicated = await duplicateServiceProgram(candidate.id, `${candidate.title} Template`);
+    pushToast({ kind: "success", title: "Reusable template created", description: duplicated.title });
+    await reload();
+  };
+
+  const dropItem = async (targetId: number) => {
+    if (!program || draggedItemId === null || draggedItemId === targetId) return;
+    const items = [...program.items].sort((a, b) => a.position - b.position);
+    const from = items.findIndex((item) => item.id === draggedItemId);
+    const to = items.findIndex((item) => item.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = items.splice(from, 1);
+    items.splice(to, 0, moved);
+    setDraggedItemId(null);
+    await reorderServiceItems(program.id, items.map((item) => item.id));
     announceProgramSelection(await reload());
   };
 
@@ -216,6 +241,7 @@ export function ServiceProgramPage() {
 
   return (
     <section>
+      {confirmationDialog}
       <PageHeader
         eyebrow="Service Program"
         title="Order of service"
@@ -297,6 +323,10 @@ export function ServiceProgramPage() {
                           <Edit3 className="h-4 w-4" />
                           Edit
                         </Button>
+                        <Button variant="outline" size="sm" onClick={() => void duplicateProgram(candidate)}>
+                          <Copy className="h-4 w-4" />
+                          Template
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => void removeProgram(candidate)}>
                           <Trash2 className="h-4 w-4" />
                           Delete
@@ -324,7 +354,16 @@ export function ServiceProgramPage() {
                   .slice()
                   .sort((a, b) => a.position - b.position)
                   .map((item) => (
-                    <div key={item.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white/[0.72] p-4">
+                    <div
+                      key={item.id}
+                      draggable
+                      onDragStart={() => setDraggedItemId(item.id)}
+                      onDragEnd={() => setDraggedItemId(null)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => void dropItem(item.id)}
+                      className={`flex flex-wrap items-center gap-3 rounded-xl border bg-white/[0.72] p-4 transition ${draggedItemId === item.id ? "border-gold-500 opacity-60" : "border-border"}`}
+                    >
+                      <GripVertical className="h-5 w-5 cursor-grab text-muted-foreground" aria-label="Drag to reorder" />
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy-900 text-sm font-black text-gold-300">
                         {item.position}
                       </div>

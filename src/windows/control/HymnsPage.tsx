@@ -15,8 +15,10 @@ import { Textarea } from "../../components/ui/textarea";
 import { Modal } from "../../components/ui/modal";
 import { EmptyState } from "../../components/common/EmptyState";
 import { PageHeader } from "./components/PageHeader";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export function HymnsPage() {
+  const { confirm, confirmationDialog } = useConfirm();
   const pushToast = useAppStore((state) => state.pushToast);
   const setPreviewContent = useProjectionStore((state) => state.setPreviewContent);
   const projectContent = useProjectionStore((state) => state.projectContent);
@@ -114,6 +116,7 @@ export function HymnsPage() {
   };
 
   const remove = async (hymn: Hymn) => {
+    if (!(await confirm({ title: "Archive hymn?", description: `"${hymn.title}" will no longer appear in search results.`, confirmLabel: "Archive" }))) return;
     await deleteHymn(hymn.id);
     pushToast({ kind: "info", title: "Hymn archived" });
     await reload();
@@ -128,6 +131,7 @@ export function HymnsPage() {
 
   return (
     <section>
+      {confirmationDialog}
       <PageHeader
         eyebrow="Hymn Projection"
         title="Hymns, stanza by stanza"

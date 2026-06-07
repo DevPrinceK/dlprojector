@@ -5,18 +5,20 @@ import { SlideFrame } from "./SlideFrame";
 interface HymnSlideProps {
   content: ProjectionContent;
   preview?: boolean;
+  showTitle?: boolean;
+  scrollSecondsPerLine?: number;
 }
 
-export function HymnSlide({ content, preview }: HymnSlideProps) {
+export function HymnSlide({ content, preview, showTitle = true, scrollSecondsPerLine = 4.2 }: HymnSlideProps) {
   const lineCount = (content.body || "").split("\n").filter(Boolean).length;
   const shouldScroll = !preview && lineCount > 8;
-  const duration = Math.max(26, Math.min(58, lineCount * 4.2));
+  const duration = Math.max(20, Math.min(90, lineCount * scrollSecondsPerLine));
 
   return (
     <SlideFrame preview={preview}>
       <article className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden text-center">
         {content.subtitle ? <div className={preview ? "mb-2 text-sm text-gold-100" : "mb-3 text-gold-100"}>{content.subtitle}</div> : null}
-        {content.title ? (
+        {content.title && showTitle ? (
           <h1 className={preview ? "projection-text mb-4 text-2xl font-black" : "projection-text mb-[clamp(1.5rem,4vw,3rem)] text-[clamp(3rem,6vw,6.5rem)] font-black"}>
             {content.title}
           </h1>

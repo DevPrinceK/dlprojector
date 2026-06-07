@@ -4,23 +4,38 @@ use tauri::State;
 use crate::db::AppState;
 use crate::error::{AppError, AppResult};
 use crate::models::projection::ProjectionContent;
-use crate::models::service_program::{ServiceItem, ServiceItemInput, ServiceProgram, ServiceProgramInput};
+use crate::models::service_program::{
+    ServiceItem, ServiceItemInput, ServiceProgram, ServiceProgramInput,
+};
 
 #[tauri::command]
-pub fn create_service_program(state: State<'_, AppState>, input: ServiceProgramInput) -> AppResult<ServiceProgram> {
+pub fn create_service_program(
+    state: State<'_, AppState>,
+    input: ServiceProgramInput,
+) -> AppResult<ServiceProgram> {
     if input.title.trim().is_empty() {
-        return Err(AppError::Validation("Service program title is required.".to_string()));
+        return Err(AppError::Validation(
+            "Service program title is required.".to_string(),
+        ));
     }
 
     let mut conn = state.conn()?;
     let tx = conn.transaction()?;
     if input.is_active.unwrap_or(true) {
-        tx.execute("UPDATE service_programs SET is_active = 0 WHERE deleted_at IS NULL", [])?;
+        tx.execute(
+            "UPDATE service_programs SET is_active = 0 WHERE deleted_at IS NULL",
+            [],
+        )?;
     }
     tx.execute(
         "INSERT INTO service_programs(title, service_date, notes, is_active)
          VALUES (?1, ?2, ?3, ?4)",
-        params![input.title, input.service_date, input.notes, input.is_active.unwrap_or(true)],
+        params![
+            input.title,
+            input.service_date,
+            input.notes,
+            input.is_active.unwrap_or(true)
+        ],
     )?;
     let id = tx.last_insert_rowid();
     tx.commit()?;
@@ -29,24 +44,40 @@ pub fn create_service_program(state: State<'_, AppState>, input: ServiceProgramI
 }
 
 #[tauri::command]
-pub fn update_service_program(state: State<'_, AppState>, id: i64, input: ServiceProgramInput) -> AppResult<ServiceProgram> {
+pub fn update_service_program(
+    state: State<'_, AppState>,
+    id: i64,
+    input: ServiceProgramInput,
+) -> AppResult<ServiceProgram> {
     if input.title.trim().is_empty() {
-        return Err(AppError::Validation("Service program title is required.".to_string()));
+        return Err(AppError::Validation(
+            "Service program title is required.".to_string(),
+        ));
     }
 
     let mut conn = state.conn()?;
     let tx = conn.transaction()?;
     if input.is_active.unwrap_or(false) {
-        tx.execute("UPDATE service_programs SET is_active = 0 WHERE deleted_at IS NULL", [])?;
+        tx.execute(
+            "UPDATE service_programs SET is_active = 0 WHERE deleted_at IS NULL",
+            [],
+        )?;
     }
     tx.execute(
         "UPDATE service_programs
          SET title = ?1, service_date = ?2, notes = ?3, is_active = ?4, updated_at = datetime('now')
          WHERE id = ?5 AND deleted_at IS NULL",
-        params![input.title, input.service_date, input.notes, input.is_active.unwrap_or(true), id],
+        params![
+            input.title,
+            input.service_date,
+            input.notes,
+            input.is_active.unwrap_or(true),
+            id
+        ],
     )?;
     tx.commit()?;
-    get_service_program_by_id(&conn, id)?.ok_or_else(|| AppError::Message("Service program not found.".to_string()))
+    get_service_program_by_id(&conn, id)?
+        .ok_or_else(|| AppError::Message("Service program not found.".to_string()))
 }
 
 #[tauri::command]
@@ -79,6 +110,45 @@ pub fn list_service_programs(state: State<'_, AppState>) -> AppResult<Vec<Servic
 }
 
 #[tauri::command]
+pub fn duplicate_service_program(
+    state: State<'_, AppState>,
+    id: i64,
+    title: String,
+) -> AppResult<ServiceProgram> {
+    if title.trim().is_empty() {
+        return Err(AppError::Validation(
+            "Template title is required.".to_string(),
+        ));
+    }
+    let mut conn = state.conn()?;
+    let source = get_service_program_by_id(&conn, id)?
+        .ok_or_else(|| AppError::Message("Service program not found.".to_string()))?;
+    let tx = conn.transaction()?;
+    tx.execute(
+        "INSERT INTO service_programs(title, service_date, notes, is_active) VALUES (?1, NULL, ?2, 0)",
+        params![title, source.notes],
+    )?;
+    let new_id = tx.last_insert_rowid();
+    for item in source.items {
+        tx.execute(
+            "INSERT INTO service_items(service_program_id, item_type, title, linked_entity_id, custom_content_json, position)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                new_id,
+                item.item_type,
+                item.title,
+                item.linked_entity_id,
+                item.custom_content_json.map(|content| serde_json::to_string(&content)).transpose()?,
+                item.position
+            ],
+        )?;
+    }
+    tx.commit()?;
+    get_service_program_by_id(&conn, new_id)?
+        .ok_or_else(|| AppError::Message("Could not load duplicated service program.".to_string()))
+}
+
+#[tauri::command]
 pub fn get_active_service_program(state: State<'_, AppState>) -> AppResult<Option<ServiceProgram>> {
     let conn = state.conn()?;
     let mut program = conn
@@ -101,9 +171,14 @@ pub fn get_active_service_program(state: State<'_, AppState>) -> AppResult<Optio
 }
 
 #[tauri::command]
-pub fn add_service_item(state: State<'_, AppState>, input: ServiceItemInput) -> AppResult<ServiceItem> {
+pub fn add_service_item(
+    state: State<'_, AppState>,
+    input: ServiceItemInput,
+) -> AppResult<ServiceItem> {
     if input.title.trim().is_empty() {
-        return Err(AppError::Validation("Service item title is required.".to_string()));
+        return Err(AppError::Validation(
+            "Service item title is required.".to_string(),
+        ));
     }
 
     let content_json = match input.custom_content_json {
@@ -113,7 +188,7 @@ pub fn add_service_item(state: State<'_, AppState>, input: ServiceItemInput) -> 
     let conn = state.conn()?;
     let next_position = input.position.unwrap_or_else(|| {
         conn.query_row(
-            "SELECT COALESCE(MAX(position), 0) + 1 FROM service_items WHERE service_program_id = ?1",
+            "SELECT COALESCE(MAX(position), 0) + 1 FROM service_items WHERE service_program_id = ?1 AND deleted_at IS NULL",
             params![input.service_program_id],
             |row| row.get::<_, i64>(0),
         )
@@ -138,9 +213,15 @@ pub fn add_service_item(state: State<'_, AppState>, input: ServiceItemInput) -> 
 }
 
 #[tauri::command]
-pub fn update_service_item(state: State<'_, AppState>, id: i64, input: ServiceItemInput) -> AppResult<ServiceItem> {
+pub fn update_service_item(
+    state: State<'_, AppState>,
+    id: i64,
+    input: ServiceItemInput,
+) -> AppResult<ServiceItem> {
     if input.title.trim().is_empty() {
-        return Err(AppError::Validation("Service item title is required.".to_string()));
+        return Err(AppError::Validation(
+            "Service item title is required.".to_string(),
+        ));
     }
     let content_json = match input.custom_content_json {
         Some(content) => Some(serde_json::to_string(&content)?),
@@ -170,7 +251,10 @@ pub fn update_service_item(state: State<'_, AppState>, id: i64, input: ServiceIt
 #[tauri::command]
 pub fn delete_service_item(state: State<'_, AppState>, id: i64) -> AppResult<()> {
     let conn = state.conn()?;
-    conn.execute("DELETE FROM service_items WHERE id = ?1", params![id])?;
+    conn.execute(
+        "UPDATE service_items SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?1",
+        params![id],
+    )?;
     Ok(())
 }
 
@@ -193,7 +277,10 @@ pub fn reorder_service_items(
     list_items_for_program(&conn, service_program_id)
 }
 
-fn get_service_program_by_id(conn: &rusqlite::Connection, id: i64) -> AppResult<Option<ServiceProgram>> {
+fn get_service_program_by_id(
+    conn: &rusqlite::Connection,
+    id: i64,
+) -> AppResult<Option<ServiceProgram>> {
     let mut program = conn
         .query_row(
             "SELECT id, title, service_date, notes, is_active, created_at, updated_at, deleted_at
@@ -211,12 +298,15 @@ fn get_service_program_by_id(conn: &rusqlite::Connection, id: i64) -> AppResult<
     Ok(program)
 }
 
-fn list_items_for_program(conn: &rusqlite::Connection, service_program_id: i64) -> AppResult<Vec<ServiceItem>> {
+fn list_items_for_program(
+    conn: &rusqlite::Connection,
+    service_program_id: i64,
+) -> AppResult<Vec<ServiceItem>> {
     let mut statement = conn.prepare(
         "SELECT id, service_program_id, item_type, title, linked_entity_id, custom_content_json,
                 position, created_at, updated_at
          FROM service_items
-         WHERE service_program_id = ?1
+         WHERE service_program_id = ?1 AND deleted_at IS NULL
          ORDER BY position ASC",
     )?;
     let rows = statement.query_map(params![service_program_id], map_service_item)?;
@@ -232,7 +322,7 @@ fn get_service_item_by_id(conn: &rusqlite::Connection, id: i64) -> AppResult<Opt
         "SELECT id, service_program_id, item_type, title, linked_entity_id, custom_content_json,
                 position, created_at, updated_at
          FROM service_items
-         WHERE id = ?1",
+         WHERE id = ?1 AND deleted_at IS NULL",
         params![id],
         map_service_item,
     )
@@ -256,8 +346,8 @@ fn map_service_program_shell(row: &rusqlite::Row<'_>) -> rusqlite::Result<Servic
 
 fn map_service_item(row: &rusqlite::Row<'_>) -> rusqlite::Result<ServiceItem> {
     let custom_json: Option<String> = row.get(5)?;
-    let custom_content_json: Option<ProjectionContent> = custom_json
-        .and_then(|json| serde_json::from_str::<ProjectionContent>(&json).ok());
+    let custom_content_json: Option<ProjectionContent> =
+        custom_json.and_then(|json| serde_json::from_str::<ProjectionContent>(&json).ok());
     Ok(ServiceItem {
         id: row.get(0)?,
         service_program_id: row.get(1)?,

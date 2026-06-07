@@ -6,18 +6,20 @@ import { LoaderSlide } from "./slides/LoaderSlide";
 import { LogoSlide } from "./slides/LogoSlide";
 import { PersonalitySlide } from "./slides/PersonalitySlide";
 import { ScriptureSlide } from "./slides/ScriptureSlide";
+import type { ProjectionPreferences } from "../../stores/settings.store";
 
 interface ProjectionRendererProps {
   content: ProjectionContent;
   preview?: boolean;
+  preferences?: ProjectionPreferences;
 }
 
-export function ProjectionRenderer({ content, preview = false }: ProjectionRendererProps) {
+export function ProjectionRenderer({ content, preview = false, preferences }: ProjectionRendererProps) {
   switch (content.type) {
     case "scripture":
-      return <ScriptureSlide content={content} preview={preview} />;
+      return <ScriptureSlide content={content} preview={preview} showVersion={preferences?.showScriptureVersion} />;
     case "hymn":
-      return <HymnSlide content={content} preview={preview} />;
+      return <HymnSlide content={content} preview={preview} showTitle={preferences?.showHymnTitle} scrollSecondsPerLine={preferences?.hymnScrollSecondsPerLine} />;
     case "announcement":
       return <AnnouncementSlide content={content} preview={preview} />;
     case "personality":
@@ -25,9 +27,9 @@ export function ProjectionRenderer({ content, preview = false }: ProjectionRende
     case "blank":
       return <BlankSlide />;
     case "loader":
-      return <LoaderSlide subtitle={content.subtitle} preview={preview} />;
+      return <LoaderSlide title={preferences?.loaderText ?? content.title} subtitle={content.subtitle} preview={preview} />;
     case "custom":
-      return <HymnSlide content={content} preview={preview} />;
+      return <HymnSlide content={content} preview={preview} showTitle={preferences?.showHymnTitle} scrollSecondsPerLine={preferences?.hymnScrollSecondsPerLine} />;
     case "logo":
     default:
       return <LogoSlide content={content} preview={preview} />;

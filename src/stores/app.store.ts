@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { AppToast } from "../types/common";
 
 export type ControlView =
@@ -19,7 +20,7 @@ interface AppStore {
   removeToast: (id: string) => void;
 }
 
-export const useAppStore = create<AppStore>((set) => ({
+export const useAppStore = create<AppStore>()(persist((set) => ({
   activeView: "dashboard",
   toasts: [],
   setActiveView: (activeView) => set({ activeView }),
@@ -31,4 +32,7 @@ export const useAppStore = create<AppStore>((set) => ({
     set((state) => ({
       toasts: state.toasts.filter((toast) => toast.id !== id)
     }))
+}), {
+  name: "dlprojector:app",
+  partialize: (state) => ({ activeView: state.activeView })
 }));

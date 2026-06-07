@@ -74,6 +74,28 @@
     text-wrap: balance;
   }
 
+  .projection-bg-black {
+    background: #000;
+  }
+
+  .projection-bg-warm {
+    background:
+      radial-gradient(circle at 18% 12%, rgba(230, 191, 90, 0.28), transparent 28rem),
+      linear-gradient(135deg, #241a0d, #493518 58%, #171006);
+  }
+
+  .projection-bg:not(:has(.projection-text.text-lg)) .projection-text {
+    font-size: clamp(2rem, calc(var(--projection-font-size, 72px) * 0.75), var(--projection-font-size, 72px));
+  }
+
+  .transition-none [class*="animate-slide-up"] {
+    animation: none;
+  }
+
+  .transition-fade [class*="animate-slide-up"] {
+    animation-name: fade-in;
+  }
+
   .projection-card {
     @apply border border-white/10 bg-white/[0.08] shadow-2xl backdrop-blur-sm;
   }
@@ -122,5 +144,84 @@
     background-size: 56px 56px;
     opacity: 0.35;
     mask-image: linear-gradient(to bottom, black, transparent 88%);
+  }
+
+  .live-status-dot {
+    display: inline-block;
+    animation: live-status-pulse 1.8s ease-in-out infinite;
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0.55);
+  }
+
+  .timeline-live-item {
+    animation: timeline-live-glow 3.6s ease-in-out infinite;
+  }
+
+  .take-live-sweep {
+    width: 42%;
+    transform: translateX(-180%) skewX(-18deg);
+    animation: take-live-sweep 5s ease-in-out infinite;
+  }
+
+  .projector-heartbeat {
+    animation: projector-heartbeat 3.2s ease-in-out infinite;
+  }
+
+  @keyframes live-status-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+    }
+    50% {
+      opacity: 0.72;
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);
+    }
+  }
+
+  @keyframes timeline-live-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 22px rgba(34, 197, 94, 0.1);
+    }
+    50% {
+      box-shadow: 0 0 42px rgba(34, 197, 94, 0.24);
+    }
+  }
+
+  @keyframes take-live-sweep {
+    0%,
+    76% {
+      transform: translateX(-180%) skewX(-18deg);
+    }
+    92%,
+    100% {
+      transform: translateX(360%) skewX(-18deg);
+    }
+  }
+
+  @keyframes projector-heartbeat {
+    0%,
+    86%,
+    100% {
+      transform: scale(1);
+    }
+    90% {
+      transform: scale(1.025);
+    }
+    94% {
+      transform: scale(1);
+    }
+    97% {
+      transform: scale(1.018);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live-status-dot,
+    .timeline-live-item,
+    .take-live-sweep,
+    .projector-heartbeat {
+      animation: none;
+    }
   }
 }

@@ -23,7 +23,11 @@ pub fn list_settings(state: State<'_, AppState>) -> AppResult<Vec<AppSetting>> {
 }
 
 #[tauri::command]
-pub fn save_setting(state: State<'_, AppState>, key: String, value: String) -> AppResult<AppSetting> {
+pub fn save_setting(
+    state: State<'_, AppState>,
+    key: String,
+    value: String,
+) -> AppResult<AppSetting> {
     let conn = state.conn()?;
     conn.execute(
         "INSERT INTO app_settings(key, value, created_at, updated_at)
