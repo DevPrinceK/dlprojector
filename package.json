@@ -1,6 +1,6 @@
 {
   "name": "dlprojector",
-  "version": "0.1.0",
+  "version": "0.1.7",
   "private": true,
   "description": "Offline-first church projection software for DLCF Legon.",
   "type": "module",
@@ -12,7 +12,8 @@
     "tauri": "tauri",
     "website:dev": "vite --config website/vite.config.ts",
     "website:build": "vite build --config website/vite.config.ts",
-    "website:preview": "vite preview --config website/vite.config.ts"
+    "website:preview": "vite preview --config website/vite.config.ts",
+    "version:sync": "node scripts/sync-version.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.0",

@@ -17,9 +17,9 @@ interface ProjectionRendererProps {
 export function ProjectionRenderer({ content, preview = false, preferences }: ProjectionRendererProps) {
   switch (content.type) {
     case "scripture":
-      return <ScriptureSlide content={content} preview={preview} showVersion={preferences?.showScriptureVersion} />;
+      return <ScriptureSlide content={content} preview={preview} showVersion={preferences?.showScriptureVersion} referencePosition={preferences?.scriptureReferencePosition} />;
     case "hymn":
-      return <HymnSlide content={content} preview={preview} showTitle={preferences?.showHymnTitle} scrollSecondsPerLine={preferences?.hymnScrollSecondsPerLine} />;
+      return <HymnSlide content={content} preview={preview} showTitle={preferences?.showHymnTitle} scrollSecondsPerLine={preferences?.hymnScrollSecondsPerLine} textAlign={preferences?.hymnTextAlign} />;
     case "announcement":
       return <AnnouncementSlide content={content} preview={preview} />;
     case "personality":
@@ -29,7 +29,7 @@ export function ProjectionRenderer({ content, preview = false, preferences }: Pr
     case "loader":
       return <LoaderSlide title={preferences?.loaderText ?? content.title} subtitle={content.subtitle} preview={preview} />;
     case "custom":
-      return <HymnSlide content={content} preview={preview} showTitle={preferences?.showHymnTitle} scrollSecondsPerLine={preferences?.hymnScrollSecondsPerLine} />;
+      return <HymnSlide content={content} preview={preview} showTitle={preferences?.showHymnTitle} scrollSecondsPerLine={preferences?.hymnScrollSecondsPerLine} textAlign={preferences?.hymnTextAlign} />;
     case "logo":
     default:
       return <LogoSlide content={content} preview={preview} />;

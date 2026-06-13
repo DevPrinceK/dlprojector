@@ -51,8 +51,6 @@ pub fn run_migrations(connection: &Connection) -> AppResult<()> {
     ensure_column(connection, "media_assets", "deleted_at", "TEXT")?;
     ensure_column(connection, "service_items", "deleted_at", "TEXT")?;
     ensure_default_settings(connection)?;
-    seed_demo_data(connection)?;
-
     Ok(())
 }
 
@@ -70,6 +68,11 @@ fn ensure_default_settings(connection: &Connection) -> AppResult<()> {
         ("backup.autoEnabled", "true"),
         ("scripture.version", "KJV"),
         ("loader.text", "DLCF Legon"),
+        ("scripture.referencePosition", "top"),
+        ("hymn.textAlign", "center"),
+        ("projection.screenIndex", "1"),
+        ("backup.directory", ""),
+        ("backup.retention", "10"),
     ];
     for (key, value) in defaults {
         connection.execute(
@@ -106,7 +109,7 @@ fn ensure_column(
     Ok(())
 }
 
-fn seed_demo_data(connection: &Connection) -> AppResult<()> {
+pub fn seed_demo_data(connection: &Connection) -> AppResult<()> {
     let seed_version = "demo-seed-2026-06-01-v2";
     let current_seed: Option<String> = connection
         .query_row(

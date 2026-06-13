@@ -39,7 +39,25 @@ pub fn open(app: &AppHandle) -> AppResult<()> {
                 |row| row.get(0),
             )
             .optional()?;
-        if let Some((x, y)) = position.as_deref().and_then(parse_pair::<i32>) {
+        let screen_index: usize = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key = 'projection.screenIndex'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(1);
+        let monitors = window
+            .available_monitors()
+            .map_err(|error| AppError::Tauri(error.to_string()))?;
+        if let Some(monitor) = monitors.get(screen_index).or_else(|| monitors.first()) {
+            let monitor_position = monitor.position();
+            let _ = window.set_position(PhysicalPosition::new(
+                monitor_position.x,
+                monitor_position.y,
+            ));
+        } else if let Some((x, y)) = position.as_deref().and_then(parse_pair::<i32>) {
             let _ = window.set_position(PhysicalPosition::new(x, y));
         }
         if let Some((width, height)) = size.as_deref().and_then(parse_pair::<u32>) {

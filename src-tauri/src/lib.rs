@@ -15,6 +15,10 @@ pub fn run() -> Result<(), AppError> {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let state = AppState::initialize(app.handle())?;
+            services::diagnostics::record(
+                &state.diagnostics_path,
+                &format!("DL Projector {} started", env!("CARGO_PKG_VERSION")),
+            );
             app.manage(state);
             Ok(())
         })
@@ -68,7 +72,9 @@ pub fn run() -> Result<(), AppError> {
             commands::backup::import_backup,
             commands::backup::create_auto_backup,
             commands::settings::list_settings,
-            commands::settings::save_setting
+            commands::settings::save_setting,
+            commands::settings::install_sample_data,
+            commands::settings::diagnostics_path
         ]);
 
     let app = builder
@@ -93,8 +99,14 @@ pub fn run() -> Result<(), AppError> {
                     .map(|value| value != "false")
                     .unwrap_or(true);
                 if auto_enabled {
-                    let _ = commands::backup::create_auto_backup_from_state(state.inner());
+                    if let Err(error) = commands::backup::create_auto_backup_from_state(state.inner()) {
+                        services::diagnostics::record(
+                            &state.diagnostics_path,
+                            &format!("Automatic backup failed: {error}"),
+                        );
+                    }
                 }
+                services::diagnostics::record(&state.diagnostics_path, "Application exit requested");
             }
             tauri::RunEvent::WindowEvent { label, event, .. } if label == "projection" => {
                 let state = app_handle.state::<AppState>();

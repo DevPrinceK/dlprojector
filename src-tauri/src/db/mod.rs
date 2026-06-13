@@ -14,6 +14,7 @@ pub struct AppState {
     pub app_data_dir: PathBuf,
     pub media_dir: PathBuf,
     pub backup_dir: PathBuf,
+    pub diagnostics_path: PathBuf,
     connection: Mutex<Connection>,
 }
 
@@ -31,6 +32,7 @@ impl AppState {
         std::fs::create_dir_all(&backup_dir)?;
 
         let db_path = app_data_dir.join("dlprojector.sqlite3");
+        let diagnostics_path = app_data_dir.join("logs").join("dlprojector.log");
         let pending_restore = app_data_dir.join("restore-pending.sqlite3");
         if pending_restore.exists() {
             std::fs::copy(&pending_restore, &db_path)?;
@@ -60,6 +62,7 @@ impl AppState {
             app_data_dir,
             media_dir,
             backup_dir,
+            diagnostics_path,
             connection: Mutex::new(connection),
         })
     }

@@ -18,12 +18,25 @@ export async function getSettings() {
     { key: "shortcut.logo", value: "l" },
     { key: "backup.autoEnabled", value: "true" },
     { key: "scripture.version", value: "KJV" },
-    { key: "loader.text", value: "DLCF Legon" }
+    { key: "loader.text", value: "DLCF Legon" },
+    { key: "scripture.referencePosition", value: "top" },
+    { key: "hymn.textAlign", value: "center" },
+    { key: "projection.screenIndex", value: "1" },
+    { key: "backup.directory", value: "" },
+    { key: "backup.retention", value: "10" }
   ]);
 }
 
 export async function saveSetting(key: string, value: string) {
   return tryInvokeCommand<AppSetting>("save_setting", { key, value }, () => ({ key, value }));
+}
+
+export async function installSampleData() {
+  return tryInvokeCommand<void>("install_sample_data", undefined, async () => undefined);
+}
+
+export async function getDiagnosticsPath() {
+  return tryInvokeCommand<string>("diagnostics_path", undefined, () => "Diagnostics are available in the desktop app.");
 }
 
 const settingsChangedEvent = "settings:changed";

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "DL Projector",
-  "version": "0.1.0",
+  "version": "0.1.7",
   "identifier": "org.dlcflegon.dlprojector",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -34,16 +34,21 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost https://api.github.com https://raw.githubusercontent.com; img-src 'self' asset: http://asset.localhost data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'",
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/**"]
+        "scope": [
+          "$APPDATA/org.dlcflegon.dlprojector/media/**"
+        ]
       }
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
+    "targets": [
+      "msi",
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -65,7 +70,9 @@
         "uninstallerIcon": "icons/icon.ico",
         "uninstallerHeaderImage": "installer-assets/header.bmp",
         "installMode": "currentUser",
-        "languages": ["English"],
+        "languages": [
+          "English"
+        ],
         "compression": "lzma",
         "startMenuFolder": "PKay Software Consultancy"
       }

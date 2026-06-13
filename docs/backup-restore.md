@@ -2,6 +2,8 @@
 
 DL Projector stores data in the operating system app data directory. Backups are exported as `.dlcfbackup` archives.
 
+Automatic backups can use the managed app directory or a custom folder configured in Settings. Retention is configurable from 1 to 50 archives, and the oldest automatic backups are removed only after a new backup succeeds.
+
 ## Manual Export
 
 1. Open `Settings`.

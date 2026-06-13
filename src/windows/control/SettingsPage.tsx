@@ -3,7 +3,7 @@ import { BookOpen, Download, Music, RefreshCw, Save } from "lucide-react";
 import { exportBackup, importBackup } from "../../features/backup/backup.api";
 import { importBundledGhs } from "../../features/hymns/hymn.api";
 import { importBibleCsv, importBundledKjv, listBibleVersions } from "../../features/scriptures/scripture.api";
-import { getSettings, notifySettingsChanged, saveSetting, type AppSetting } from "../../features/settings/settings.api";
+import { getDiagnosticsPath, getSettings, installSampleData, notifySettingsChanged, saveSetting, type AppSetting } from "../../features/settings/settings.api";
 import { toErrorMessage } from "../../lib/error-handling";
 import { useAppStore } from "../../stores/app.store";
 import { Button } from "../../components/ui/button";
@@ -44,6 +44,7 @@ export function SettingsPage() {
   const [downloadingBibleVersion, setDownloadingBibleVersion] = useState<string | null>(null);
   const [installedVersions, setInstalledVersions] = useState<BibleVersion[]>([]);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [isInstallingSamples, setIsInstallingSamples] = useState(false);
 
   useEffect(() => {
     void getSettings().then(setSettings);
@@ -168,6 +169,35 @@ export function SettingsPage() {
     }
   };
 
+  const runSampleInstall = async () => {
+    try {
+      setIsInstallingSamples(true);
+      await installSampleData();
+      pushToast({
+        kind: "success",
+        title: "Sample workspace installed",
+        description: "Demo announcements, people, hymns, scriptures, and a service program are ready."
+      });
+    } catch (error) {
+      pushToast({ kind: "error", title: "Could not install sample data", description: toErrorMessage(error) });
+    } finally {
+      setIsInstallingSamples(false);
+    }
+  };
+
+  const revealDiagnostics = async () => {
+    try {
+      const path = await getDiagnosticsPath();
+      if (isTauriRuntime()) {
+        const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
+        await revealItemInDir(path);
+      }
+      pushToast({ kind: "info", title: "Diagnostics location", description: path });
+    } catch (error) {
+      pushToast({ kind: "error", title: "Could not open diagnostics", description: toErrorMessage(error) });
+    }
+  };
+
   return (
     <section>
       <PageHeader
@@ -282,6 +312,12 @@ export function SettingsPage() {
               <RefreshCw className={`h-4 w-4 ${isCheckingUpdates ? "animate-spin" : ""}`} />
               {isCheckingUpdates ? "Checking..." : "Check for updates"}
             </Button>
+            <Button variant="outline" onClick={() => void runSampleInstall()} disabled={isInstallingSamples}>
+              {isInstallingSamples ? "Installing sample workspace..." : "Install optional sample workspace"}
+            </Button>
+            <Button variant="outline" onClick={() => void revealDiagnostics()}>
+              Open diagnostics folder
+            </Button>
           </CardContent>
         </Card>
 
@@ -330,7 +366,12 @@ function SettingField({ setting, onChange }: { setting: AppSetting; onChange: (v
     "shortcut.logo": "Logo shortcut",
     "backup.autoEnabled": "Automatic backup on exit",
     "scripture.version": "Default Bible version",
-    "loader.text": "Loading screen text"
+    "loader.text": "Loading screen text",
+    "scripture.referencePosition": "Scripture reference position",
+    "hymn.textAlign": "Hymn text alignment",
+    "projection.screenIndex": "Preferred projection display (0 = primary, 1 = second display)",
+    "backup.directory": "Automatic backup folder (blank = app default)",
+    "backup.retention": "Automatic backups to retain"
   };
   const booleanSetting = setting.key === "backup.autoEnabled" || setting.key.startsWith("projection.show");
   const options =
@@ -338,6 +379,10 @@ function SettingField({ setting, onChange }: { setting: AppSetting; onChange: (v
       ? ["fade", "slide", "none"]
       : setting.key === "projection.background"
         ? ["navy", "black", "warm"]
+        : setting.key === "scripture.referencePosition"
+          ? ["top", "bottom"]
+          : setting.key === "hymn.textAlign"
+            ? ["center", "left"]
         : null;
 
   return (
@@ -354,7 +399,7 @@ function SettingField({ setting, onChange }: { setting: AppSetting; onChange: (v
         </select>
       ) : (
         <Input
-          type={setting.key.includes("fontSize") || setting.key.includes("Seconds") ? "number" : "text"}
+          type={setting.key.includes("fontSize") || setting.key.includes("Seconds") || setting.key.includes("screenIndex") || setting.key.includes("retention") ? "number" : "text"}
           min={setting.key.includes("fontSize") ? 36 : undefined}
           max={setting.key.includes("fontSize") ? 120 : undefined}
           step={setting.key.includes("Seconds") ? 0.1 : undefined}

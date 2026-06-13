@@ -14,6 +14,11 @@ export interface ProjectionPreferences {
   shortcutBlank: string;
   shortcutLogo: string;
   loaderText: string;
+  scriptureReferencePosition: "top" | "bottom";
+  hymnTextAlign: "center" | "left";
+  projectionScreenIndex: number;
+  backupDirectory: string;
+  backupRetention: number;
 }
 
 const defaults: ProjectionPreferences = {
@@ -28,7 +33,12 @@ const defaults: ProjectionPreferences = {
   shortcutNext: "Space",
   shortcutBlank: "b",
   shortcutLogo: "l",
-  loaderText: "DLCF Legon"
+  loaderText: "DLCF Legon",
+  scriptureReferencePosition: "top",
+  hymnTextAlign: "center",
+  projectionScreenIndex: 1,
+  backupDirectory: "",
+  backupRetention: 10
 };
 
 interface SettingsStore {
@@ -70,7 +80,12 @@ export function parseSettings(settings: AppSetting[]): ProjectionPreferences {
     shortcutNext: values.get("shortcut.next") || defaults.shortcutNext,
     shortcutBlank: values.get("shortcut.blank") || defaults.shortcutBlank,
     shortcutLogo: values.get("shortcut.logo") || defaults.shortcutLogo,
-    loaderText: values.get("loader.text")?.trim() || defaults.loaderText
+    loaderText: values.get("loader.text")?.trim() || defaults.loaderText,
+    scriptureReferencePosition: oneOf(values.get("scripture.referencePosition"), ["top", "bottom"], defaults.scriptureReferencePosition),
+    hymnTextAlign: oneOf(values.get("hymn.textAlign"), ["center", "left"], defaults.hymnTextAlign),
+    projectionScreenIndex: Math.max(0, Math.floor(numberValue("projection.screenIndex", defaults.projectionScreenIndex))),
+    backupDirectory: values.get("backup.directory")?.trim() || "",
+    backupRetention: Math.max(1, Math.min(50, Math.floor(numberValue("backup.retention", defaults.backupRetention))))
   };
 }
 

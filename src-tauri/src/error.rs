@@ -15,6 +15,8 @@ pub enum AppError {
     Zip(#[from] zip::result::ZipError),
     #[error("Network operation failed: {0}")]
     Network(#[from] reqwest::Error),
+    #[error("Image processing failed: {0}")]
+    Image(#[from] image::ImageError),
     #[error("Application error: {0}")]
     Tauri(String),
     #[error("Could not access shared app state.")]

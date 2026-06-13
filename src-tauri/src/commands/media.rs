@@ -53,6 +53,11 @@ pub fn import_media_data_url(
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(encoded)
         .map_err(|_| AppError::Validation("Image data could not be decoded.".to_string()))?;
+    if bytes.len() > 20 * 1024 * 1024 {
+        return Err(AppError::Validation(
+            "Image is larger than the 20 MB limit.".to_string(),
+        ));
+    }
     std::fs::create_dir_all(&state.media_dir)?;
     let safe_stem = file_name
         .chars()
@@ -68,6 +73,8 @@ pub fn import_media_data_url(
     let stored_name = format!("{}-{}.{}", safe_stem, uuid::Uuid::new_v4(), extension);
     let destination = state.media_dir.join(&stored_name);
     std::fs::write(&destination, &bytes)?;
+    media_service::optimize_media_asset(&destination)?;
+    let optimized_size = std::fs::metadata(&destination)?.len() as i64;
 
     let conn = state.conn()?;
     conn.execute(
@@ -77,7 +84,7 @@ pub fn import_media_data_url(
             stored_name,
             destination.to_string_lossy().to_string(),
             extension,
-            bytes.len() as i64
+            optimized_size
         ],
     )?;
 

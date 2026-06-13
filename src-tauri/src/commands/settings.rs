@@ -1,6 +1,7 @@
 use rusqlite::params;
 use tauri::State;
 
+use crate::db::migrations;
 use crate::db::AppState;
 use crate::error::AppResult;
 use crate::models::settings::AppSetting;
@@ -36,4 +37,15 @@ pub fn save_setting(
         params![key, value],
     )?;
     Ok(AppSetting { key, value })
+}
+
+#[tauri::command]
+pub fn install_sample_data(state: State<'_, AppState>) -> AppResult<()> {
+    let conn = state.conn()?;
+    migrations::seed_demo_data(&conn)
+}
+
+#[tauri::command]
+pub fn diagnostics_path(state: State<'_, AppState>) -> String {
+    state.diagnostics_path.to_string_lossy().to_string()
 }

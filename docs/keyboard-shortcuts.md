@@ -7,3 +7,5 @@
 - `Ctrl + F`: jump to scripture search.
 - `Ctrl + P`: project selected preview.
 - `Ctrl + O`: open the projection window.
+
+The `Previous` and `Next` controls beside `TAKE LIVE` stage adjacent items from the active service rail without changing the live output.

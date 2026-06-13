@@ -10,7 +10,10 @@ describe("projection settings", () => {
       { key: "projection.showHymnTitle", value: "false" },
       { key: "hymn.scrollSecondsPerLine", value: "1" },
       { key: "shortcut.next", value: "Enter" },
-      { key: "loader.text", value: "Evening Worship" }
+      { key: "loader.text", value: "Evening Worship" },
+      { key: "scripture.referencePosition", value: "bottom" },
+      { key: "hymn.textAlign", value: "left" },
+      { key: "backup.retention", value: "500" }
     ]);
 
     expect(settings.fontSize).toBe(120);
@@ -20,6 +23,9 @@ describe("projection settings", () => {
     expect(settings.hymnScrollSecondsPerLine).toBe(2);
     expect(settings.shortcutNext).toBe("Enter");
     expect(settings.loaderText).toBe("Evening Worship");
+    expect(settings.scriptureReferencePosition).toBe("bottom");
+    expect(settings.hymnTextAlign).toBe("left");
+    expect(settings.backupRetention).toBe(50);
   });
 
   it("falls back when persisted settings are malformed", () => {

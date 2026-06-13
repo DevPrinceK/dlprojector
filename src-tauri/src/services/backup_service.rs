@@ -103,6 +103,31 @@ pub fn stage_restore(backup_path: &Path, app_data_dir: &Path) -> AppResult<PathB
     Ok(pending_restore)
 }
 
+pub fn prune_auto_backups(backup_dir: &Path, retain: usize) -> AppResult<()> {
+    if !backup_dir.exists() {
+        return Ok(());
+    }
+    let mut backups = std::fs::read_dir(backup_dir)?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("auto-") && name.ends_with(".dlcfbackup"))
+        })
+        .collect::<Vec<_>>();
+    backups.sort_by_key(|path| {
+        std::fs::metadata(path)
+            .and_then(|metadata| metadata.modified())
+            .ok()
+    });
+    let remove_count = backups.len().saturating_sub(retain.max(1));
+    for path in backups.into_iter().take(remove_count) {
+        std::fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
 fn resolve_target_path(
     backup_dir: &Path,
     target_path: Option<String>,
@@ -150,6 +175,24 @@ mod tests {
             std::fs::read(restore.join("restore-pending-media").join("photo.png")).unwrap(),
             b"image-bytes"
         );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn automatic_backup_retention_removes_oldest_archives() {
+        let root = std::env::temp_dir().join(format!(
+            "dlprojector-retention-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        for index in 0..4 {
+            std::fs::write(root.join(format!("auto-{index}.dlcfbackup")), [index]).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+
+        prune_auto_backups(&root, 2).unwrap();
+        let remaining = std::fs::read_dir(&root).unwrap().count();
+        assert_eq!(remaining, 2);
         let _ = std::fs::remove_dir_all(root);
     }
 }

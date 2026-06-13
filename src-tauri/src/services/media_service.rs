@@ -6,6 +6,8 @@ use crate::error::{AppError, AppResult};
 
 const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp"];
 const MAX_IMAGE_BYTES: usize = 20 * 1024 * 1024;
+const MAX_IMAGE_WIDTH: u32 = 1920;
+const MAX_IMAGE_HEIGHT: u32 = 1080;
 
 pub fn copy_media_asset(
     source_path: &str,
@@ -48,6 +50,7 @@ pub fn copy_media_asset(
     let file_name = format!("{}-{}.{}", safe_name, Uuid::new_v4(), extension);
     let destination = media_dir.join(&file_name);
     std::fs::copy(&source, &destination)?;
+    optimize_media_asset(&destination)?;
     let metadata = std::fs::metadata(&destination)?;
 
     Ok((file_name, destination, extension, metadata.len() as i64))
@@ -98,10 +101,45 @@ pub fn download_media_asset(
     let file_name = format!("remote-{}.{}", Uuid::new_v4(), extension);
     let destination = media_dir.join(&file_name);
     std::fs::write(&destination, &bytes)?;
+    optimize_media_asset(&destination)?;
+    let optimized_size = std::fs::metadata(&destination)?.len() as i64;
     Ok((
         file_name,
         destination,
         extension.to_string(),
-        bytes.len() as i64,
+        optimized_size,
     ))
+}
+
+pub fn optimize_media_asset(path: &Path) -> AppResult<()> {
+    let image = image::open(path)?;
+    if image.width() <= MAX_IMAGE_WIDTH && image.height() <= MAX_IMAGE_HEIGHT {
+        return Ok(());
+    }
+    image
+        .thumbnail(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT)
+        .save(path)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn oversized_images_are_resized_for_projection() {
+        let root = std::env::temp_dir().join(format!("dlprojector-image-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("oversized.png");
+        image::DynamicImage::new_rgb8(3000, 2000)
+            .save(&path)
+            .unwrap();
+
+        optimize_media_asset(&path).unwrap();
+
+        let optimized = image::open(&path).unwrap();
+        assert!(optimized.width() <= MAX_IMAGE_WIDTH);
+        assert!(optimized.height() <= MAX_IMAGE_HEIGHT);
+        let _ = std::fs::remove_dir_all(root);
+    }
 }

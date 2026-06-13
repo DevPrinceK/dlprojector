@@ -35,6 +35,7 @@ import { personalityToProjection } from "../../features/personalities/personalit
 import { searchScriptures } from "../../features/scriptures/scripture.api";
 import { scriptureResultToProjection } from "../../features/scriptures/scripture.utils";
 import { getActiveServiceProgram } from "../../features/service-program/service-program.api";
+import { adjacentServiceItem } from "../../features/service-program/service-navigation";
 import { openProjectionWindow } from "../../lib/projection-window";
 import { tryInvokeCommand } from "../../lib/tauri";
 import { useAppStore, type ControlView } from "../../stores/app.store";
@@ -95,7 +96,6 @@ export function ControlConsole() {
   const showBlank = useProjectionStore((state) => state.showBlank);
   const showLogo = useProjectionStore((state) => state.showLogo);
   const showLoader = useProjectionStore((state) => state.showLoader);
-  const restorePrevious = useProjectionStore((state) => state.restorePrevious);
   const emergencyReset = useProjectionStore((state) => state.emergencyReset);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CommandResult[]>([]);
@@ -133,6 +133,18 @@ export function ControlConsole() {
     window.addEventListener("dl:service-program-changed", loadActiveProgram);
     return () => window.removeEventListener("dl:service-program-changed", loadActiveProgram);
   }, [pushToast]);
+
+  useEffect(() => {
+    if (!program) return;
+    const stored = window.localStorage.getItem(`dlprojector:service-position:${program.id}`);
+    const itemId = Number(stored);
+    if (Number.isFinite(itemId) && program.items.some((item) => item.id === itemId)) {
+      setStagedServiceItemId(itemId);
+    } else {
+      setStagedServiceItemId(null);
+      setLiveServiceItemId(null);
+    }
+  }, [program?.id]);
 
   useEffect(() => {
     const searchTerm = query.trim();
@@ -239,6 +251,25 @@ export function ControlConsole() {
     pushToast({ kind: "success", title: "Loaded into preview", description: result.title });
   };
 
+  const stageServiceItem = (item: ServiceProgram["items"][number]) => {
+    const content = serviceItemToProjection(item);
+    setStagedServiceItemId(item.id);
+    setPreviewContent(content);
+    if (program) {
+      window.localStorage.setItem(`dlprojector:service-position:${program.id}`, String(item.id));
+    }
+    pushToast({ kind: "success", title: "Loaded service item into preview", description: item.title });
+  };
+
+  const moveServiceSelection = (direction: -1 | 1) => {
+    const item = adjacentServiceItem(
+      program?.items ?? [],
+      stagedServiceItemId ?? liveServiceItemId,
+      direction
+    );
+    if (item) stageServiceItem(item);
+  };
+
   return (
     <div className="console-shell relative h-screen overflow-hidden bg-[#05050a] text-slate-100">
       <div className="console-aurora" />
@@ -306,14 +337,15 @@ export function ControlConsole() {
 
         <TakeConsole
           disabled={!previewContent}
-          onPrevious={() => runAction("Could not restore previous slide", restorePrevious)}
+          navigationDisabled={!program?.items.length}
+          onPrevious={() => moveServiceSelection(-1)}
           onTake={() =>
             runAction("Could not take preview live", async () => {
               await projectPreview();
               if (stagedServiceItemId !== null) setLiveServiceItemId(stagedServiceItemId);
             })
           }
-          onNext={() => setActiveView("service")}
+          onNext={() => moveServiceSelection(1)}
         />
 
         <Timeline
@@ -321,12 +353,7 @@ export function ControlConsole() {
           stagedItemId={stagedServiceItemId}
           liveItemId={liveServiceItemId}
           onAddItem={() => setActiveView("service")}
-          onStageItem={(item) => {
-            const content = serviceItemToProjection(item);
-            setStagedServiceItemId(item.id);
-            setPreviewContent(content);
-            pushToast({ kind: "success", title: "Loaded service item into preview", description: item.title });
-          }}
+          onStageItem={stageServiceItem}
         />
       </main>
 
@@ -460,18 +487,20 @@ function EmptyDeck() {
 
 function TakeConsole({
   disabled,
+  navigationDisabled,
   onPrevious,
   onTake,
   onNext
 }: {
   disabled: boolean;
+  navigationDisabled: boolean;
   onPrevious: () => void;
   onTake: () => void;
   onNext: () => void;
 }) {
   return (
     <section className="flex items-center justify-center gap-4">
-      <Button variant="outline" className="h-12 border-white/10 bg-white/[0.06] px-5 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onPrevious}>
+      <Button variant="outline" disabled={navigationDisabled} className="h-12 border-white/10 bg-white/[0.06] px-5 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onPrevious}>
         <SkipBack className="h-5 w-5" />
         Previous
       </Button>
@@ -487,8 +516,8 @@ function TakeConsole({
           TAKE LIVE
         </span>
       </button>
-      <Button variant="outline" className="h-12 border-white/10 bg-white/[0.06] px-5 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onNext}>
-        Service
+      <Button variant="outline" disabled={navigationDisabled} className="h-12 border-white/10 bg-white/[0.06] px-5 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onNext}>
+        Next
         <SkipForward className="h-5 w-5" />
       </Button>
     </section>

@@ -118,6 +118,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Synchronize application version
+        shell: bash
+        run: npm run version:sync -- "${RELEASE_TAG#v}"
+
       - name: Validate Apple signing certificate
         if: runner.os == 'macOS' && vars.ENABLE_APPLE_SIGNING == 'true'
         shell: bash
@@ -195,8 +199,38 @@ jobs:
           APPLE_SIGNING_IDENTITY: "-"
         run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
 
-      - name: Build Tauri bundles
-        if: runner.os != 'macOS'
+      - name: Import Windows signing certificate
+        if: runner.os == 'Windows' && vars.ENABLE_WINDOWS_SIGNING == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+        run: |
+          if (-not $env:WINDOWS_CERTIFICATE -or -not $env:WINDOWS_CERTIFICATE_PASSWORD -or -not $env:WINDOWS_CERTIFICATE_THUMBPRINT) {
+            throw "Windows signing is enabled, but certificate secrets are incomplete."
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "windows-signing.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password | Out-Null
+          if (-not (Test-Path "Cert:\CurrentUser\My\$env:WINDOWS_CERTIFICATE_THUMBPRINT")) {
+            throw "Imported certificate thumbprint does not match WINDOWS_CERTIFICATE_THUMBPRINT."
+          }
+
+      - name: Build signed Windows bundles
+        if: runner.os == 'Windows' && vars.ENABLE_WINDOWS_SIGNING == 'true'
+        env:
+          TAURI_CONFIG: >-
+            {"bundle":{"windows":{"certificateThumbprint":"${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}","digestAlgorithm":"sha256","timestampUrl":"http://timestamp.digicert.com"}}}
+        run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
+
+      - name: Build unsigned Windows bundles
+        if: runner.os == 'Windows' && vars.ENABLE_WINDOWS_SIGNING != 'true'
+        run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
+
+      - name: Build Linux bundles
+        if: runner.os == 'Linux'
         run: npm run tauri -- build ${{ matrix.platform.tauri_args }}
 
       - name: Generate SHA-256 checksums
